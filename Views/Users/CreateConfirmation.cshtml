@@ -1,0 +1,23 @@
+﻿@{
+	ViewData["Title"] = "User Created";
+	var email = TempData["UserEmail"] as string;
+	var password = TempData["TempPassword"] as string;
+}
+
+@if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+{
+	<div class="alert alert-success">
+		<h4>User created successfully!</h4>
+		<p><strong>Email:</strong> @email</p>
+		<p><strong>Temporary Password:</strong> <code>@password</code></p>
+		<p class="text-danger"><strong>Note:</strong> Copy this password now — it won't be shown again.</p>
+	</div>
+}
+else
+{
+	<div class="alert alert-warning">
+		<p>User creation info not available. Please try again.</p>
+	</div>
+}
+
+<a class="btn btn-primary" asp-area="" asp-controller="Users" asp-action="Index">Close</a>

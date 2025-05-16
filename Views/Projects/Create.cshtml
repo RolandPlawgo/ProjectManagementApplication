@@ -1,0 +1,64 @@
+﻿@model ProjectManagementApplication.Models.Project
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1 class="h3">Create Project</h1>
+<hr />
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <input asp-for="Description" class="form-control" />
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="SprintDuration" class="form-label"></label>
+        <select asp-for="SprintDuration"
+                asp-items="ViewBag.SprintDurations"
+                class="form-select">
+            <option value="" disabled>Choose duration…</option>
+        </select>
+        <span asp-validation-for="SprintDuration" class="text-danger"></span>
+    </div>
+
+    <div class="mb-4">
+        <label class="form-label">Assigned Users</label>
+        <div>
+            @foreach (var user in (IEnumerable<SelectListItem>)ViewBag.AllUsers)
+            {
+                <div class="form-check">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="UserId"
+                           id="user_@user.Value"
+                           value="@user.Value"
+                    @(user.Selected ? "checked" : "") />
+                    <label class="form-check-label" for="user_@user.Value">
+                        @user.Text
+                    </label>
+                </div>
+            }
+        </div>
+        <span asp-validation-for="UserId" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create</button>
+    <a asp-action="Index" class="btn btn-link">Back</a>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
