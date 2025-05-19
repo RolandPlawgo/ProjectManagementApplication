@@ -23,11 +23,50 @@ namespace ProjectManagementApplication.Controllers
             _context = context;
             _userManager = userManager;
         }
-
-        // GET: Projects
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Projects.ToListAsync());
+            var projects = await _context.Projects.ToListAsync();
+
+            var cards = new List<ProjectCardViewModel>(projects.Count);
+            foreach (var p in projects)
+            {
+                var vm = new ProjectCardViewModel
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description
+                };
+
+                if (p.UserId != null)
+                {
+                    foreach (var userId in p.UserId)
+                    {
+                        var u = await _userManager.FindByIdAsync(userId);
+                        if (u == null) continue;
+
+                        var first = u.FirstName?.Trim();
+                        var last = u.LastName?.Trim();
+                        string initials;
+                        if (!string.IsNullOrEmpty(first) && !string.IsNullOrEmpty(last))
+                        {
+                            initials = $"{first[0]}{last[0]}".ToUpper();
+                        }
+                        else
+                        {
+                            var un = u.UserName ?? "";
+                            initials = un.Length >= 2
+                                             ? un.Substring(0, 2).ToUpper()
+                                             : un.ToUpper();
+                        }
+
+                        vm.UserInitials.Add(initials);
+                    }
+                }
+
+                cards.Add(vm);
+            }
+
+            return View(cards);
         }
 
         // GET: Projects/Details/5
@@ -66,7 +105,7 @@ namespace ProjectManagementApplication.Controllers
         }
         
         // GET: Projects/Create
-        [Authorize(Roles = "ScrumMaster")]
+        [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Create()
         {
             var project = new Project
@@ -80,13 +119,20 @@ namespace ProjectManagementApplication.Controllers
         }
 
         // POST: Projects/Create
-        [Authorize(Roles = "ScrumMaster")]
+        [Authorize(Roles = "Scrum Master")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Name,Description,SprintDuration,UserId")] Project project)
         {
             if (ModelState.IsValid)
             {
+                if (!(await AllRolesExistInProject(project)))
+                {
+                    ModelState.AddModelError(string.Empty, "One or more required roles are missing. Assign at least one user for each role.");
+                    await PopulateSelections(project);
+                    return View(project);
+                }
+
                 _context.Add(project);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -98,7 +144,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         // GET: Projects/Edit/5
-        [Authorize(Roles = "ScrumMaster")]
+        [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -117,7 +163,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         // POST: Projects/Edit/5
-        [Authorize(Roles = "ScrumMaster")]
+        [Authorize(Roles = "Scrum Master")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,SprintDuration,UserId")] Project project)
@@ -131,6 +177,13 @@ namespace ProjectManagementApplication.Controllers
             {
                 try
                 {
+                    if (!(await AllRolesExistInProject(project)))
+                    {
+                        ModelState.AddModelError(string.Empty, "One or more required roles are missing. Assign at least one user for each role.");
+                        await PopulateSelections(project);
+                        return View(project);
+                    }
+
                     _context.Update(project);
                     await _context.SaveChangesAsync();
                 }
@@ -154,7 +207,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         // GET: Projects/Delete/5
-        [Authorize(Roles = "ScrumMaster")]
+        [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -173,7 +226,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         // POST: Projects/Delete/5
-        [Authorize(Roles = "ScrumMaster")]
+        [Authorize(Roles = "Scrum Master")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -232,6 +285,35 @@ namespace ProjectManagementApplication.Controllers
             }
 
             ViewBag.AllUsers = userItems;
+        }
+
+        private async Task<bool> AllRolesExistInProject (Project project)
+        {
+            bool developerExists = false;
+            bool POExists = false;
+            bool SMExists = false;
+            foreach (var id in project.UserId)
+            {
+                ApplicationUser? user = await _userManager.FindByIdAsync(id);
+                if (user is null)
+                {
+                    throw new Exception("User not found");
+                }
+                if (await _userManager.IsInRoleAsync(user, "Product Owner"))
+                {
+                    POExists = true;
+                }
+                else if (await _userManager.IsInRoleAsync(user, "Scrum Master"))
+                {
+                    SMExists = true;
+                }
+                else
+                {
+                    developerExists = true;
+                }
+            }
+
+            return developerExists && POExists && SMExists;
         }
     }
 }

@@ -1,32 +1,42 @@
-﻿@model IEnumerable<ProjectManagementApplication.Models.Project>
+﻿@model IEnumerable<ProjectCardViewModel>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Projects";
 }
 
 <h1>Projects</h1>
 
-<div class="container">
+<div class="container mt-4">
     <div class="row row-cols-1 row-cols-md-3 g-4">
-    @foreach (var item in Model)
-    {
-        <div class="col">
-        <div class="card h-100 border-primary">
-            <div class="card-body d-flex flex-column">
-                <h2 class="h5 card-title">@Html.DisplayFor(modelItem => item.Name)</h2>
-                <p class="card-text">@Html.DisplayFor(modelItem => item.Description)</p>
-                <div class="mt-auto">
-                <a href="#" class="btn btn-sm btn-primary pe-3 ps-3 me-2">open</a>
-                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-secondary pe-3 ps-3">details</a>
+        @foreach (var card in Model)
+        {
+            <div class="col">
+                <div class="card h-100 border-primary">
+                    <div class="card-body d-flex flex-column">
+                        <h2 class="h5 card-title">@card.Name</h2>
+                        <p class="card-text">@card.Description</p>
+
+                        <div class="mt-auto d-flex align-items-center">
+                            <div class="btn-group btn-group-sm">
+                                <a asp-action="Details" asp-route-id="@card.Id" class="btn btn-sm btn-primary me-2">Open</a>
+                                <a asp-action="Details" asp-route-id="@card.Id" class="btn btn-sm btn-secondary">Details</a>
+                            </div>
+
+                            <div class="ms-auto d-flex flex-wrap gap-1 mt-3" style="max-width: calc(100% - 120px);">
+                                @foreach (var init in card.UserInitials)
+                                {
+                                    <span class="avatar-circle">@init</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        </div>
-    }
+        }
     </div>
 </div>
 
-@if (User.IsInRole("ScrumMaster"))
+@if (User.IsInRole("Scrum Master"))
 {
     <p class="mt-4">
         <a class="btn btn-sm btn-primary" asp-action="Create">Create New</a>

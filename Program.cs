@@ -8,6 +8,8 @@ using JavaScriptEngineSwitcher.Extensions.MsDependencyInjection;
 using WebOptimizer;
 using WebOptimizer.Sass;
 using ProjectManagementApplication.Authentication;
+using DartSassHost;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 
 namespace ProjectManagementApplication
 {
@@ -60,9 +62,8 @@ namespace ProjectManagementApplication
                 var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                 var roleManager = serviceScope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-                await roleManager.CreateAsync(new IdentityRole("ScrumMaster"));
-                await roleManager.CreateAsync(new IdentityRole("ProductOwner"));
-
+                await roleManager.CreateAsync(new IdentityRole("Scrum Master"));
+                await roleManager.CreateAsync(new IdentityRole("Product Owner"));
 
                 var developer = new ApplicationUser()
                 {
@@ -81,7 +82,7 @@ namespace ProjectManagementApplication
                     UserName = "jankowalski@mail.com"
                 };
                 await userManager.CreateAsync(scrumMaster, "Qwerty1!");
-                await userManager.AddToRoleAsync(scrumMaster, "ScrumMaster");
+                await userManager.AddToRoleAsync(scrumMaster, "Scrum Master");
 
                 var productOwner = new ApplicationUser()
                 {
@@ -91,9 +92,8 @@ namespace ProjectManagementApplication
                     UserName = "annawisniwska@mail.com"
                 };
                 await userManager.CreateAsync(productOwner, "Qwerty1!");
-                await userManager.AddToRoleAsync(productOwner, "ProductOwner");
+                await userManager.AddToRoleAsync(productOwner, "Product Owner");
             }
-
 
 
             // Configure the HTTP request pipeline.
