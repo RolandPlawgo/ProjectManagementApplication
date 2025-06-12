@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProjectManagementApplication.Data;
 
@@ -11,9 +12,11 @@ using ProjectManagementApplication.Data;
 namespace ProjectManagementApplication.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250606122757_SeedInitialData")]
+    partial class SeedInitialData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,21 +24,6 @@ namespace ProjectManagementApplication.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("ApplicationUserProject", b =>
-                {
-                    b.Property<int>("ProjectsId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UsersId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("ProjectsId", "UsersId");
-
-                    b.HasIndex("UsersId");
-
-                    b.ToTable("ApplicationUserProject");
-                });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -271,13 +259,13 @@ namespace ProjectManagementApplication.Data.Migrations
                         new
                         {
                             Id = 1,
-                            ProjectId = 100,
+                            ProjectId = 1,
                             Title = "Epic: Authentication"
                         },
                         new
                         {
                             Id = 2,
-                            ProjectId = 100,
+                            ProjectId = 1,
                             Title = "Epic: Authorization"
                         });
                 });
@@ -301,6 +289,10 @@ namespace ProjectManagementApplication.Data.Migrations
                     b.Property<int>("SprintDuration")
                         .HasColumnType("int");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Projects");
@@ -311,7 +303,8 @@ namespace ProjectManagementApplication.Data.Migrations
                             Id = 100,
                             Description = "Sample project added by deafult",
                             Name = "Sample Project",
-                            SprintDuration = 2
+                            SprintDuration = 2,
+                            UserId = "[]"
                         });
                 });
 
@@ -376,21 +369,6 @@ namespace ProjectManagementApplication.Data.Migrations
                             Status = 0,
                             Title = "Claim-based auth"
                         });
-                });
-
-            modelBuilder.Entity("ApplicationUserProject", b =>
-                {
-                    b.HasOne("ProjectManagementApplication.Data.Entities.Project", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ProjectManagementApplication.Authentication.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UsersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

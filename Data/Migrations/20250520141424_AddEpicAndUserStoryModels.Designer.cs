@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProjectManagementApplication.Data;
 
@@ -11,9 +12,11 @@ using ProjectManagementApplication.Data;
 namespace ProjectManagementApplication.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250520141424_AddEpicAndUserStoryModels")]
+    partial class AddEpicAndUserStoryModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,21 +24,6 @@ namespace ProjectManagementApplication.Data.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("ApplicationUserProject", b =>
-                {
-                    b.Property<int>("ProjectsId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UsersId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("ProjectsId", "UsersId");
-
-                    b.HasIndex("UsersId");
-
-                    b.ToTable("ApplicationUserProject");
-                });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -246,7 +234,7 @@ namespace ProjectManagementApplication.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("ProjectManagementApplication.Data.Entities.Epic", b =>
+            modelBuilder.Entity("ProjectManagementApplication.Models.Epic", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -254,35 +242,16 @@ namespace ProjectManagementApplication.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
-
                     b.ToTable("Epics");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            ProjectId = 100,
-                            Title = "Epic: Authentication"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            ProjectId = 100,
-                            Title = "Epic: Authorization"
-                        });
                 });
 
-            modelBuilder.Entity("ProjectManagementApplication.Data.Entities.Project", b =>
+            modelBuilder.Entity("ProjectManagementApplication.Models.Project", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -301,21 +270,16 @@ namespace ProjectManagementApplication.Data.Migrations
                     b.Property<int>("SprintDuration")
                         .HasColumnType("int");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.ToTable("Projects");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 100,
-                            Description = "Sample project added by deafult",
-                            Name = "Sample Project",
-                            SprintDuration = 2
-                        });
                 });
 
-            modelBuilder.Entity("ProjectManagementApplication.Data.Entities.UserStory", b =>
+            modelBuilder.Entity("ProjectManagementApplication.Models.UserStory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -323,14 +287,7 @@ namespace ProjectManagementApplication.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("EpicId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
+                    b.Property<int?>("EpicId")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
@@ -342,55 +299,6 @@ namespace ProjectManagementApplication.Data.Migrations
                     b.HasIndex("EpicId");
 
                     b.ToTable("UserStories");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "Allow users to log in",
-                            EpicId = 1,
-                            Status = 0,
-                            Title = "Login page"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Allow user registration",
-                            EpicId = 1,
-                            Status = 0,
-                            Title = "Registration"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Description = "CRUD roles",
-                            EpicId = 2,
-                            Status = 0,
-                            Title = "Role management"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Description = "Implement claim checks",
-                            EpicId = 2,
-                            Status = 0,
-                            Title = "Claim-based auth"
-                        });
-                });
-
-            modelBuilder.Entity("ApplicationUserProject", b =>
-                {
-                    b.HasOne("ProjectManagementApplication.Data.Entities.Project", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ProjectManagementApplication.Authentication.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UsersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -444,36 +352,16 @@ namespace ProjectManagementApplication.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ProjectManagementApplication.Data.Entities.Epic", b =>
+            modelBuilder.Entity("ProjectManagementApplication.Models.UserStory", b =>
                 {
-                    b.HasOne("ProjectManagementApplication.Data.Entities.Project", "Project")
-                        .WithMany("Epics")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-                });
-
-            modelBuilder.Entity("ProjectManagementApplication.Data.Entities.UserStory", b =>
-                {
-                    b.HasOne("ProjectManagementApplication.Data.Entities.Epic", "Epic")
+                    b.HasOne("ProjectManagementApplication.Models.Epic", null)
                         .WithMany("UserStories")
-                        .HasForeignKey("EpicId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Epic");
+                        .HasForeignKey("EpicId");
                 });
 
-            modelBuilder.Entity("ProjectManagementApplication.Data.Entities.Epic", b =>
+            modelBuilder.Entity("ProjectManagementApplication.Models.Epic", b =>
                 {
                     b.Navigation("UserStories");
-                });
-
-            modelBuilder.Entity("ProjectManagementApplication.Data.Entities.Project", b =>
-                {
-                    b.Navigation("Epics");
                 });
 #pragma warning restore 612, 618
         }

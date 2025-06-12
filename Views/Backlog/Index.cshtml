@@ -1,0 +1,116 @@
+﻿@model ProjectManagementApplication.Models.BacklogViewModels.BacklogViewModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Backlog";
+}
+
+<h1 class="h3">Backlog ― @Model.ProjectName</h1>
+<hr />
+<div class="container row">
+    <div class="col-2 ps-0">
+        @await Html.PartialAsync("_SprintSidebar")
+    </div>
+    <div class="accordion col-10" id="backlogAccordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <div class="accordion-button bg-primary static-header" style="cursor: default;">
+                    Epics
+                </div>
+            </h2>
+        </div>
+
+        @for (int i = 0; i < Model.Epics.Count; i++)
+        {
+            var epic = Model.Epics[i];
+            var collapseId = $"epic-collapse-{i}";
+            var headingId = $"epic-heading-{i}";
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="@headingId">
+                    <div class="d-flex align-items-center w-100">
+                        <button class="accordion-button collapsed flex-grow-1"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#@collapseId"
+                                aria-expanded="false"
+                                aria-controls="@collapseId">
+                            @epic.Title
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary ps-3 pe-3 ms-2 me-2"
+                                onclick="openEditEpicModal(@epic.Id)">
+                            Edit
+                        </button>
+                    </div>
+                </h2>
+                <div id="@collapseId" class="accordion-collapse collapse" aria-labelledby="@headingId">
+                    <div class="accordion-body">
+                        @if (epic.UserStories?.Any() == true)
+                        {
+                            <ul class="list-group">
+                                <li class="list-group-item bg-primary static-header" 
+                                    style="cursor: default;">
+                                    <h3 class="h6">User stories</h3>
+                                </li>
+                                @foreach (var story in epic.UserStories)
+                                {
+                                    <li class="list-group-item">
+                                        <a href="javascript:void(0)"
+                                           onclick="openEditStoryModal(@story.Id)"
+                                           class="text-dark text-decoration-none">
+                                            @story.Title
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No user stories yet.</p>
+                        }
+
+                        <button type="button"
+                                class="btn btn-sm btn-primary mt-3"
+                                onclick="openStoryModal(@epic.Id)">
+                            + Add Story
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="mt-4">
+            <button type="button" class="btn btn-sm btn-primary" onclick="openEpicModal(@Model.ProjectId)">
+                + Add Epic
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="epicModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" id="epicModalContent"></div>
+  </div>
+</div>
+
+<div class="modal fade" id="epicModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" id="epicModalContent"></div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="storyModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" id="storyModalContent">
+
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="~/js/backlog.js"></script>
+}

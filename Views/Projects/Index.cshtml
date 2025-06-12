@@ -1,4 +1,5 @@
-﻿@model IEnumerable<ProjectCardViewModel>
+﻿@using ProjectManagementApplication.Models.ProjectsViewModels
+@model IEnumerable<ProjectCardViewModel>
 
 @{
     ViewData["Title"] = "Projects";
@@ -18,7 +19,7 @@
 
                         <div class="mt-auto d-flex align-items-center">
                             <div class="btn-group btn-group-sm">
-                                <a asp-action="Details" asp-route-id="@card.Id" class="btn btn-sm btn-primary me-2">Open</a>
+                                <a asp-controller="Backlog" asp-action="Index" asp-route-id="@card.Id" class="btn btn-sm btn-primary me-2">Open</a>
                                 <a asp-action="Details" asp-route-id="@card.Id" class="btn btn-sm btn-secondary">Details</a>
                             </div>
 

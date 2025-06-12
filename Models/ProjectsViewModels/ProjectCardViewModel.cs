@@ -1,4 +1,4 @@
-﻿namespace ProjectManagementApplication.Models
+﻿namespace ProjectManagementApplication.Models.ProjectsViewModels
 {
     public class ProjectCardViewModel
     {

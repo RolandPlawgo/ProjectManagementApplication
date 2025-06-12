@@ -1,25 +1,24 @@
-﻿@model ProjectManagementApplication.Models.Project
+﻿@using ProjectManagementApplication.Models.ProjectsViewModels
+@model ProjectDetailsViewModel
 
 @{
     ViewData["Title"] = "Details";
-
-    var usersWithRoles = ViewBag.UsersWithRoles as IEnumerable<dynamic>;
 }
 
 <h1 class="h3">Project Details</h1>
 <hr />
 
 <div>
-    <h2 class="h4">@Html.DisplayFor(model => model.Name)</h2>
-    <p>@Html.DisplayFor(model => model.Description)</p>
-    <p>Sprint duration: @Html.DisplayFor(model => model.SprintDuration) weeks</p>
+    <h2 class="h4">@Model.Name</h2>
+    <p>@Model.Description</p>
+    <p>Sprint duration: @Model.SprintDuration weeks</p>
 
     <div class="mt-4">
         <h3 class="h5">Assigned Users</h3>
-        @if (usersWithRoles != null && usersWithRoles.Any())
+        @if (Model.UsersWithRoles.Any())
         {
             <ul class="list-unstyled">
-                @foreach (var u in usersWithRoles)
+                @foreach (var u in Model.UsersWithRoles)
                 {
                     <li>
                         @u.UserName
@@ -31,13 +30,11 @@
     </div>
 </div>
 
-
-
 @if (User.IsInRole("Scrum Master"))
 {
     <div class="mt-4">
-        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-sm btn-primary pe-3 ps-3 me-2">Edit</a>
-        <a asp-action="Delete" asp-route-id="@Model?.Id" class="btn btn-sm btn-danger pe-2 ps-2 me-2">Delete</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-primary pe-3 ps-3 me-2">Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-sm btn-danger pe-2 ps-2 me-2">Delete</a>
     </div>
 }
 <div class="mt-3">

@@ -9,7 +9,6 @@ using WebOptimizer;
 using WebOptimizer.Sass;
 using ProjectManagementApplication.Authentication;
 using DartSassHost;
-using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 
 namespace ProjectManagementApplication
 {
@@ -47,7 +46,6 @@ namespace ProjectManagementApplication
             {
                 pipeline.AddScssBundle("css/site.css", "scss/site.scss");
             });
-
 
 
             var app = builder.Build();

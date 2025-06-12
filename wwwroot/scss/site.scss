@@ -43,3 +43,18 @@ body {
     text-align: center;
     font-weight: 600;
 }
+
+
+/*Exapandible list*/
+.static-header::after {
+    display: none;
+}
+
+
+/*Sidebar menu*/
+.sidebar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    height: 80vh;
+}

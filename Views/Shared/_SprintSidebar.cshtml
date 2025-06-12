@@ -1,0 +1,16 @@
+﻿<div class="sidebar d-flex flex-column p-2 border rounded-1" @* style="width: 200px;" *@>
+    <a asp-controller="Backlog" asp-action="Index"
+       class="btn mb-2 text-start @(ViewContext.RouteData.Values["controller"]?.ToString() == "Backlog" ? "btn-primary" : "btn-light")">
+        Backlog
+    </a>
+
+    <a asp-controller="Sprint" asp-action="Index"
+       class="btn mb-2 text-start @(ViewContext.RouteData.Values["controller"]?.ToString() == "Sprint" ? "btn-primary" : "btn-light")">
+        Scrum board
+    </a>
+
+    <a asp-controller="ProductIncrement" asp-action="Index"
+       class="btn mb-2 text-start @(ViewContext.RouteData.Values["controller"]?.ToString() == "ProductIncrement" ? "btn-primary" : "btn-light")">
+        Product increment
+    </a>
+</div>
