@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Data.Entities;
-using ProjectManagementApplication.Models.BacklogViewModels;
 
 namespace ProjectManagementApplication.Data
 {
@@ -11,6 +10,9 @@ namespace ProjectManagementApplication.Data
         public DbSet<Project> Projects { get; set; }
         public DbSet<Epic> Epics { get; set; }
         public DbSet<UserStory> UserStories { get; set; }
+        public DbSet<Sprint> Sprints { get; set; }
+        public DbSet<Subtask> Subtasks { get; set; }
+        public DbSet<Comment> Comments { get; set; }
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -42,6 +44,14 @@ namespace ProjectManagementApplication.Data
                 new UserStory { Id = 3, EpicId = 2, Title = "Role management", Description = "CRUD roles", Status = Status.Backlog },
                 new UserStory { Id = 4, EpicId = 2, Title = "Claim-based auth", Description = "Implement claim checks", Status = Status.Backlog }
             );
+
+
+            // Sprint -> UserStories: NO cascade
+            builder.Entity<UserStory>()
+               .HasOne(us => us.Sprint)
+               .WithMany(s => s.UserStories)
+               .HasForeignKey(us => us.SprintId)
+               .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

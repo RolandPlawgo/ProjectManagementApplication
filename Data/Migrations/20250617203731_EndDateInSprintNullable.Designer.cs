@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProjectManagementApplication.Data;
 
@@ -11,9 +12,11 @@ using ProjectManagementApplication.Data;
 namespace ProjectManagementApplication.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250617203731_EndDateInSprintNullable")]
+    partial class EndDateInSprintNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -254,23 +257,14 @@ namespace ProjectManagementApplication.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AuthorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("TaskId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AuthorId");
 
                     b.HasIndex("TaskId");
 
@@ -382,9 +376,6 @@ namespace ProjectManagementApplication.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AssignedUserId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -400,8 +391,6 @@ namespace ProjectManagementApplication.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AssignedUserId");
 
                     b.HasIndex("UserStoryId");
 
@@ -544,19 +533,11 @@ namespace ProjectManagementApplication.Data.Migrations
 
             modelBuilder.Entity("ProjectManagementApplication.Data.Entities.Comment", b =>
                 {
-                    b.HasOne("ProjectManagementApplication.Authentication.ApplicationUser", "Author")
-                        .WithMany("Comments")
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("ProjectManagementApplication.Data.Entities.Subtask", "Task")
                         .WithMany("Comments")
                         .HasForeignKey("TaskId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Author");
 
                     b.Navigation("Task");
                 });
@@ -585,17 +566,11 @@ namespace ProjectManagementApplication.Data.Migrations
 
             modelBuilder.Entity("ProjectManagementApplication.Data.Entities.Subtask", b =>
                 {
-                    b.HasOne("ProjectManagementApplication.Authentication.ApplicationUser", "AssignedUser")
-                        .WithMany("Subtasks")
-                        .HasForeignKey("AssignedUserId");
-
                     b.HasOne("ProjectManagementApplication.Data.Entities.UserStory", "UserStory")
                         .WithMany("Subtasks")
                         .HasForeignKey("UserStoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("AssignedUser");
 
                     b.Navigation("UserStory");
                 });
@@ -616,13 +591,6 @@ namespace ProjectManagementApplication.Data.Migrations
                     b.Navigation("Epic");
 
                     b.Navigation("Sprint");
-                });
-
-            modelBuilder.Entity("ProjectManagementApplication.Authentication.ApplicationUser", b =>
-                {
-                    b.Navigation("Comments");
-
-                    b.Navigation("Subtasks");
                 });
 
             modelBuilder.Entity("ProjectManagementApplication.Data.Entities.Epic", b =>

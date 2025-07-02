@@ -1,5 +1,7 @@
 ﻿$primary: #DEC2F6;
-$secondary: #EBEBEB;
+/*$secondary: #EBEBEB;*/
+$secondary: #F8F8F8;
+/*$secondary: #B9F6B3;*/
 $black: #31303C;
 $dark: #31303C;
 $danger: #BC3E3E;
@@ -42,9 +44,12 @@ body {
     font-size: 0.65rem;
     text-align: center;
     font-weight: 600;
+    cursor: default;
 }
 
-
+.static-header {
+    cursor: default;
+}
 /*Exapandible list*/
 .static-header::after {
     display: none;
@@ -56,5 +61,45 @@ body {
     position: sticky;
     top: 0;
     left: 0;
-    height: 80vh;
+    min-height: 70vh;
+}
+
+
+.board-column {
+    min-height: 60vh;
+}
+
+.board-column.board-column-short {
+    min-height: 50vh;
+}
+
+.epic-label {
+    background-color: #B9F6B3;
+    cursor: default;
+}
+
+
+/* Scrum board */
+
+.card-circle {
+    display: inline-block;
+    width: 17px;
+    height: 17px;
+    line-height: 17px;
+    margin-right: 1.5px;
+    border-radius: 50%;
+    background: $primary;
+    font-size: 0.6rem;
+    text-align: center;
+    font-weight: 600;
+    cursor: default;
+}
+
+
+/* Sprint review*/
+.product-backlog-column {
+    background-color: #f2b7b7;
+}
+.product-increment-column {
+    background-color: #bdf2b7;
 }

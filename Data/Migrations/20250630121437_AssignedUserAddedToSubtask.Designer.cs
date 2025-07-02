@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ProjectManagementApplication.Data;
 
@@ -11,9 +12,11 @@ using ProjectManagementApplication.Data;
 namespace ProjectManagementApplication.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250630121437_AssignedUserAddedToSubtask")]
+    partial class AssignedUserAddedToSubtask
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -254,23 +257,14 @@ namespace ProjectManagementApplication.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AuthorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("TaskId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AuthorId");
 
                     b.HasIndex("TaskId");
 
@@ -544,19 +538,11 @@ namespace ProjectManagementApplication.Data.Migrations
 
             modelBuilder.Entity("ProjectManagementApplication.Data.Entities.Comment", b =>
                 {
-                    b.HasOne("ProjectManagementApplication.Authentication.ApplicationUser", "Author")
-                        .WithMany("Comments")
-                        .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("ProjectManagementApplication.Data.Entities.Subtask", "Task")
                         .WithMany("Comments")
                         .HasForeignKey("TaskId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Author");
 
                     b.Navigation("Task");
                 });
@@ -620,8 +606,6 @@ namespace ProjectManagementApplication.Data.Migrations
 
             modelBuilder.Entity("ProjectManagementApplication.Authentication.ApplicationUser", b =>
                 {
-                    b.Navigation("Comments");
-
                     b.Navigation("Subtasks");
                 });
 

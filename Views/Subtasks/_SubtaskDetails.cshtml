@@ -1,0 +1,24 @@
+﻿@using ProjectManagementApplication.Models.SubtasksViewModels
+@model SubtaskDetailsViewModel
+
+<div class="modal-header">
+    <h1 class="modal-title h5">@Model.Title</h1>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body d-flex flex-column" style="max-height:65vh;">
+
+    <p>@Model.Content</p>
+
+    <div id="commentsList" class="flex-grow-1 overflow-auto mt-3">
+        @await Html.PartialAsync("_SubtaskCommentsList", Model.Comments)
+    </div>
+
+    <form id="addCommentForm" method="post" action="@Url.Action("AddComment","Subtasks")">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="taskId" value="@Model.Id" />
+        <div class="mb-1">
+            <textarea name="content" class="form-control" rows="2" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Comment</button>
+    </form>
+</div>

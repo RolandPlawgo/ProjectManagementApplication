@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ProjectManagementApplication.Models.BacklogViewModels
+namespace ProjectManagementApplication.Models.UserStoryViewModels
 {
     public class CreateUserStoryViewModel
     {

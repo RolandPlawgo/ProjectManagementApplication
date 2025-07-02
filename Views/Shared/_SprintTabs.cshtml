@@ -1,0 +1,17 @@
+﻿<div class="container row mb-3">
+    <div class="col-3">
+        <div class="text-decoration-none text-center rounded-3 p-1 @(ViewContext.RouteData.Values["controller"]?.ToString() == "SprintPlanning" ? "bg-primary" : "bg-light")" style="cursor: default;">
+            Sprint Planning
+        </div>
+    </div>
+    <div class="col-6">
+        <div class="text-decoration-none text-center rounded-3 p-1 @(ViewContext.RouteData.Values["controller"]?.ToString() == "ScrumBoard" ? "bg-primary" : "bg-light")" style="cursor: default;">
+            Scrum Board
+        </div>
+    </div>
+    <div class="col-3">
+        <div class="text-decoration-none text-center rounded-3 p-1 @(ViewContext.RouteData.Values["controller"]?.ToString() == "SprintReview" ? "bg-primary" : "bg-light")" style="cursor: default;">
+            Sprint Review
+        </div>
+    </div>
+</div>

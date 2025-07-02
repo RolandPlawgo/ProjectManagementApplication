@@ -18,5 +18,8 @@ namespace ProjectManagementApplication.Data.Entities
         public Status Status { get; set; }
         public int EpicId { get; set; }
         public Epic Epic { get; set; } = null!;
+        public int? SprintId { get; set; }
+        public Sprint? Sprint { get; set; } = null!;
+        public List<Subtask> Subtasks { get; set; } = null!;
     }
 }

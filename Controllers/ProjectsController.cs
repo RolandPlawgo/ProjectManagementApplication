@@ -35,7 +35,7 @@ namespace ProjectManagementApplication.Controllers
             var cards = new List<ProjectCardViewModel>();
             foreach (var p in projects)
             {
-                var vm = new ProjectCardViewModel
+                var model = new ProjectCardViewModel
                 {
                     Id = p.Id,
                     Name = p.Name,
@@ -43,21 +43,9 @@ namespace ProjectManagementApplication.Controllers
                 };
                 foreach (var user in p.Users)
                 {
-                    var first = user.FirstName?.Trim();
-                    var last = user.LastName?.Trim();
-                    string initials;
-                    if (!string.IsNullOrEmpty(first) && !string.IsNullOrEmpty(last))
-                    {
-                        initials = $"{first[0]}{last[0]}".ToUpper();
-                    }
-                    else
-                    {
-                        var un = user.UserName ?? string.Empty;
-                        initials = un.Length >= 2 ? un.Substring(0, 2).ToUpper() : un.ToUpper();
-                    }
-                    vm.UserInitials.Add(initials);
+                    model.UserInitials.Add(Helpers.ApplicationUserHelper.UserInitials(user));
                 }
-                cards.Add(vm);
+                cards.Add(model);
             }
 
             return View(cards);
@@ -98,9 +86,9 @@ namespace ProjectManagementApplication.Controllers
         [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Create()
         {
-            var vm = new ProjectEditViewModel { SprintDuration = 2 };
-            await PopulateSelections(vm);
-            return View(vm);
+            var model = new ProjectEditViewModel { SprintDuration = 2 };
+            await PopulateSelections(model);
+            return View(model);
         }
 
         // POST: Projects/Create
@@ -121,7 +109,6 @@ namespace ProjectManagementApplication.Controllers
                 SprintDuration = model.SprintDuration
             };
 
-            // assign users
             foreach (var userId in model.UserIds)
             {
                 var user = await _userManager.FindByIdAsync(userId);

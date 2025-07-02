@@ -1,0 +1,257 @@
+﻿@using System.Text.Json
+@model ProjectManagementApplication.Models.SprintViewModels.ScrumBoardViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery
+
+@{
+    ViewData["Title"] = "Sprint";
+    ViewData["ProjectId"] = Model.ProjectId;
+}
+
+<h1 class="h4">@Model.ProjectName</h1>
+<p class="clearfix">
+    Sprint @Model.SprintId - @Model.SprintGoal
+    <span class="float-end">Sprint ends in <span class="text-danger">@Model.DaysToEndOfSprint days</span></span>
+</p>
+
+<div class="container">
+
+<div class="row">
+    <div class="col-2 ps-0">
+        @await Html.PartialAsync("_SprintSidebar")
+    </div>
+    <div class="col-10">
+        <div class="container">
+            <div class="row">
+                @await Html.PartialAsync("_SprintTabs")
+            </div>
+                <div style="cursor:default">
+                    <div class="row gx-3">
+                        <div class="col-4">
+                            <div class="card">
+                                <div class="card-header bg-primary static-header">User Stories</div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card">
+                                <div class="card-header bg-primary static-header">To Do</div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card">
+                                <div class="card-header bg-primary static-header">In Progress</div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card">
+                                <div class="card-header bg-primary static-header">Done</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @foreach (var userStory in Model.UserStories)
+                {
+                    <div class="scrum-board" data-board-id="@userStory.Id">
+                        <div class="row gx-3">
+                            <div class="col-4">
+                                <div class="bg-light p-1 h-100">
+                                    <div class="card mt-2 p-2 task" data-id="@userStory.Id">
+                                        <h6 class="m-1">
+                                            <a href="#"
+                                               class="h6 card-title mb-1 story-link text-decoration-none"
+                                               data-modal-url="@Url.Action("Details", "UserStories", new { id = userStory.Id })"
+                                               data-modal-id="userStoryDetailsModal">
+                                                @userStory.Title
+                                            </a>
+                                        </h6>
+                                        <div class="d-flex align-items-center mt-2">
+                                            <span class="ms-auto badge text-black epic-label">
+                                                @userStory.EpicTitle
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="bg-light p-1 h-100 d-flex flex-column">
+                                    <div class="column flex-grow-1" data-status="todo">
+                                        @foreach (var task in Model.ToDoTasks.Where(t => t.UserStoryId == userStory.Id))
+                                        {
+                                            <div class="card mt-2 p-2 task" data-id="@task.Id">
+                                                <a href="#"
+                                                   data-modal-url="@Url.Action("Details", "Subtasks", new { id = task.Id })"
+                                                   data-modal-id="subtaskDetailsModal"
+                                                   class="story-link text-dark text-decoration-none">
+                                                    @task.Title
+                                                </a>
+                                                <div class="ms-auto d-flex flex-nowrap gap-1">
+                                                    @if (@task.CommentsCount > 0)
+                                                    {
+                                                        <span class="card-circle">@task.CommentsCount</span>
+                                                    }
+                                                    <span class="card-circle initials" style="display: none">@task.AssignedUserInitials</span>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="bg-light p-1 h-100 d-flex flex-column">
+                                    <div class="column flex-grow-1" data-status="inprogress">
+                                        @foreach (var task in Model.InProgressTasks.Where(t => t.UserStoryId == userStory.Id))
+                                        {
+                                            <div class="card mt-2 p-2 task" data-id="@task.Id">
+                                                <a href="#"
+                                                   data-modal-url="@Url.Action("Details", "Subtasks", new { id = task.Id })"
+                                                   data-modal-id="subtaskDetailsModal"
+                                                   class="story-link text-dark text-decoration-none">
+                                                    @task.Title
+                                                </a>
+                                                <div class="ms-auto d-flex flex-nowrap gap-1">
+                                                    @if(@task.CommentsCount > 0)
+                                                    {
+                                                        <span class="card-circle">@task.CommentsCount</span>
+                                                    }
+                                                    <span class="card-circle initials">@task.AssignedUserInitials</span>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="bg-light p-1 h-100 d-flex flex-column">
+                                    <div class="column flex-grow-1" data-status="done">
+                                        @foreach (var task in Model.DoneTasks.Where(t => t.UserStoryId == userStory.Id))
+                                        {
+                                            <div class="card mt-2 p-2 task" data-id="@task.Id">
+                                                <a href="#"
+                                                   data-modal-url="@Url.Action("Details", "Subtasks", new { id = task.Id })"
+                                                   data-modal-id="subtaskDetailsModal"
+                                                   class="story-link text-dark text-decoration-none">
+                                                    @task.Title
+                                                </a>
+                                                <div class="ms-auto d-flex flex-nowrap gap-1">
+                                                    @if (@task.CommentsCount > 0)
+                                                    {
+                                                        <span class="card-circle">@task.CommentsCount</span>
+                                                    }
+                                                    <span class="card-circle initials">@task.AssignedUserInitials</span>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <div class="scrum-board">
+                    <div class="row gx-2">
+                        <div class="col-4">
+                            <div class="bg-light p-1 h-100 rounded-bottom">
+
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="bg-light p-1 h-100 d-flex flex-column rounded-bottom">
+                                <div class="column mt-1 flex-grow-1" data-status="todo">
+                                    
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="bg-light p-1 h-100 d-flex flex-column rounded-bottom">
+                                <div class="column mt-1 flex-grow-1" data-status="inprogress">
+                                    
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="bg-light p-1 h-100 d-flex flex-column rounded-bottom">
+                                <div class="column mt-1 flex-grow-1" data-status="done">
+                                    
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="userStoryDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="subtaskDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+
+        </div>
+    </div>
+</div>
+
+
+
+
+@Html.AntiForgeryToken()
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script src="~/js/modals.js"></script>
+
+<script>
+    document.querySelectorAll('.scrum-board').forEach(board => {
+        const boardId = board.dataset.boardId;
+        const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        board.querySelectorAll('.column').forEach(col => {
+            new Sortable(col, {
+                group: boardId,
+                animation: 150,
+                onEnd: async evt => {
+                    const taskId = evt.item.dataset.id;
+                    const newStatus = evt.to.dataset.status;
+
+                    const card = evt.item;
+                    updateCircles(card, newStatus);
+
+                    const res = await fetch('/ScrumBoard/MoveCard', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'RequestVerificationToken': csrfToken
+                        },
+                        body: new URLSearchParams({
+                            id: taskId,
+                            targetList: newStatus
+                        })
+                    });
+
+                    const json = await res.json();
+                    if (!json.success) {
+                        return alert('Server failed to move card');
+                    }
+
+                    const initialsEl = card.querySelector('.card-circle.initials');
+                    if (initialsEl) {
+                        initialsEl.textContent = json.initials;
+                    }
+                }
+            });
+        });
+    });
+
+    function updateCircles(el, newStatus) {
+        const show = newStatus === 'inprogress' || newStatus === 'done';
+        el.querySelectorAll('.card-circle.initials').forEach(c => {
+            c.style.display = show ? '' : 'none';
+        });
+    }
+
+</script>

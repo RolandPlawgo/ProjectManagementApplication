@@ -1,0 +1,351 @@
+﻿@using System.Text.Json
+@model ProjectManagementApplication.Models.SprintViewModels.SprintPlanningViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery
+
+@{
+    ViewData["Title"] = "Sprint planning";
+    ViewData["ProjectId"] = Model.ProjectId;
+}
+
+<input type="hidden" id="SprintId" name="SprintId" value="@Model.SprintId" />
+
+
+<!-- Product Backlog cards -->
+<template id="tmpl-backlog-card">
+    <div class="list-group-item p-0 border-0 bg-secondary" data-story-id="{{id}}">
+        <div class="card m-1 p-1 shadow-sm">
+
+            <div class="card-body p-2">
+                <h5 class="card-title mb-1">{{title}}</h5>
+
+                <div class="d-flex align-items-center">
+                    <span class="ms-auto badge text-black epic-label">
+                        {{epicTitle}}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Sprint Backlog card -->
+<template id="tmpl-sprint-card">
+    <div class="list-group-item p-0 border-0 bg-secondary" data-story-id="{{id}}">
+        <div class="card m-1 p-1 shadow-sm">
+            <div class="card-body p-2">
+                <h5 class="card-title">{{title}}</h5>
+                <ul class="list-group ms-1 mt-3 subtask-list">
+                </ul>
+
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-primary mt-2 add-subtask"
+                            data-create-url-template="/Create?storyId={{id}}">
+                        + Add Subtask
+                    </button>
+                    <span class="ms-auto badge text-black epic-label mt-4">
+                        {{epicTitle}}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+
+<h1 class="h4">@Model.ProjectName</h1>
+<p>Sprint @Model.SprintId</p>
+
+<div class="container">
+    @{
+        var tokens = antiforgery.GetAndStoreTokens(ViewContext.HttpContext);
+    }
+    
+    <form id="antiForgeryForm">
+        <input type="hidden"
+               id="__RequestVerificationToken"
+               name="__RequestVerificationToken"
+               value="@tokens.RequestToken" />
+    </form>
+
+    <div class="row">
+        <div class="col-2 ps-0">
+            @await Html.PartialAsync("_SprintSidebar")
+        </div>
+        <div class="col-10">
+            <div class="container">
+                <div class="row">
+                    @await Html.PartialAsync("_SprintTabs")
+                </div>
+                <div class="row">
+                    <!-- Product Backlog Column -->
+                    <div class="col-md-5">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary static-header">Product Backlog</div>
+                            <div id="backlogList" class="list-group list-group-flush pt-2 pb-2 board-column board-column-short bg-light">
+                                @foreach (var story in Model.BacklogUserStories)
+                                {
+                                    <div class="list-group-item p-0 border-0 bg-light" data-story-id="@story.Id">
+                                        <div class="card m-1 p-1 shadow-sm">
+                                            <div class="card-body p-2">
+                                                <a href="#"
+                                                   data-modal-url="@Url.Action("Edit", "UserStories", new { id = story.Id })"
+                                                   data-modal-id="storyModal"
+                                                   class="h6 card-title mb-1 story-link text-decoration-none">
+                                                    @story.Title
+                                                </a>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="ms-auto badge text-black epic-label">
+                                                        @story.EpicTitle
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sprint Backlog Column -->
+                    <div class="col-md-7">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary static-header">Sprint Backlog</div>
+                            <div id="sprintList" class="list-group list-group-flush pt-2 pb-2 board-column board-column-short bg-light">
+                                @foreach (var story in Model.SprintUserStories)
+                                {
+                                    <div class="list-group-item p-0 border-0 bg-light" data-story-id="@story.Id">
+                                        <div class="card p-1 shadow-sm m-1">
+                                            <div class="card-body p-2">
+                                                <a href="#"
+                                                   data-modal-url="@Url.Action("Edit", "UserStories", new { id = story.Id })"
+                                                   data-modal-id="storyModal"
+                                                   class="h6 card-title story-link text-decoration-none">
+                                                    @story.Title
+                                                </a>
+
+                                                <ul class="list-group ms-1 mt-3">
+                                                    @foreach (var sub in Model.Subtasks.Where(s => s.UserStoryId == story.Id))
+                                                    {
+                                                        <li class="list-group-item py-1">
+                                                            <a href="#"
+                                                               data-modal-url="@Url.Action("Edit", "Subtasks", new { id = sub.Id })"
+                                                               data-modal-id="subtaskModal"
+                                                               class="story-link text-dark text-decoration-none">
+                                                                @sub.Title
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                </ul>
+
+                                                <div class="d-flex align-items-center">
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-primary mt-2"
+                                                            onclick="openModal(
+                                                    '@Url.Action("Create", "Subtasks", new { storyId = story.Id })', 'subtaskModal')">
+                                                        + Add Subtask
+                                                    </button>
+
+                                                    <span class="ms-auto badge text-black epic-label mt-4">
+                                                        @story.EpicTitle
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <form asp-action="SetSprintGoal" asp-controller="SprintPlanning" method="post"
+                          class="row g-2 align-items-center mb-4">
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden" asp-for="SprintId" />
+
+                        <div class="col-auto">
+                            <label asp-for="SprintGoal" class="col-form-label">Sprint Goal</label>
+                        </div>
+                        <div class="col">
+                            <input asp-for="SprintGoal"
+                                   class="form-control"
+                                   placeholder="Enter sprint goal…" />
+                            <span asp-validation-for="SprintGoal" class="text-danger"></span>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary">
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="row">
+                    <form asp-action="StartSprint"
+                          method="post"
+                          asp-controller="SprintPlanning"
+                          asp-route-id="@Model.SprintId"
+                          class="d-inline">
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            Start sprint
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="storyModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" id="storyModalContent">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="subtaskModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"></div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="~/js/modals.js"></script>
+
+    <script>
+        const subtaskMap = @Html.Raw(
+        JsonSerializer.Serialize(
+        Model.Subtasks
+        .GroupBy(s => s.UserStoryId)
+        .ToDictionary(
+        g => g.Key,
+        g => g.Select(s => new { id = s.Id, title = s.Title }).ToList()
+        )
+        )
+        );
+
+        const token = document.getElementById('__RequestVerificationToken').value;
+        const sprintId = parseInt(document.getElementById('SprintId').value, 10);
+
+        function cloneCardFromTemplate(templateId, storyId, title, epicTitle) {
+            const tmpl = document.getElementById(templateId);
+            const clone = document.importNode(tmpl.content, true);
+            const el = clone.firstElementChild;
+
+            el.dataset.storyId = storyId;
+
+            const link = el.querySelector('a[data-modal-url]');
+            if (link) {
+                link.dataset.modalUrl = `/UserStories/Edit/${storyId}`;
+                link.dataset.modalId = 'storyModal';
+                link.textContent = title;
+            } else {
+                const h5 = el.querySelector('.card-title');
+                const a = document.createElement('a');
+                a.href = '#';
+                a.dataset.modalUrl = `/UserStories/Edit/${storyId}`;
+                a.dataset.modalId = 'storyModal';
+                a.className = 'h6 card-title mb-1 story-link text-decoration-none';
+                a.textContent = title;
+                h5.replaceWith(a);
+            }
+
+            const addBtn = el.querySelector('.add-subtask');
+            if (addBtn) {
+                const tpl = addBtn.getAttribute('data-create-url-template');
+                const url = tpl.replace('{{id}}', storyId);
+                addBtn.addEventListener('click', () => {
+                    openModal(url, 'subtaskModal');
+                });
+            }
+
+            const epicLabel = el.querySelector('.epic-label');
+            if (epicLabel) {
+                epicLabel.textContent = epicTitle;
+            }
+
+            return el;
+        }
+
+
+
+        // Product backlog
+        Sortable.create(document.getElementById('backlogList'), {
+            group: 'userStories',
+            animation: 150,
+            onAdd(evt) {
+                const oldEl = evt.item;
+                const id = oldEl.dataset.storyId;
+                const title = oldEl.querySelector('.card-title').textContent;
+                const epicTitle = oldEl.querySelector('.epic-label').textContent;
+
+                const newEl = cloneCardFromTemplate('tmpl-backlog-card', id, title, epicTitle);
+                oldEl.replaceWith(newEl);
+
+                fetch('@Url.Action("MoveUserStory", "SprintPlanning")', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token,
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body: new URLSearchParams({
+                        id,
+                        targetList: 'Backlog',
+                        sprintId
+                    })
+                });
+            }
+        });
+
+        // Sprint backlog
+        Sortable.create(document.getElementById('sprintList'), {
+            group: 'userStories',
+            animation: 150,
+            onAdd(evt) {
+                const oldEl = evt.item;
+                const id = oldEl.dataset.storyId;
+                const title = oldEl.querySelector('.card-title').textContent;
+                const epicTitle = oldEl.querySelector('.epic-label').textContent;
+
+                const newEl = cloneCardFromTemplate('tmpl-sprint-card', id, title, epicTitle);
+                oldEl.replaceWith(newEl);
+
+                const ul = newEl.querySelector('.subtask-list');
+                (subtaskMap[id] || []).forEach(sub => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item py-1';
+
+                    const a = document.createElement('a');
+                    a.href = '#';
+                    // a.dataset.modalUrl = `/Subtasks/Edit/${sub.id}`;
+                    a.dataset.modalUrl = `/Edit/${sub.id}`;
+                    a.dataset.modalId = 'subtaskModal';
+                    a.textContent = sub.title;
+                    a.className = 'text-dark text-decoration-none';
+
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                });
+
+                fetch('@Url.Action("MoveUserStory", "SprintPlanning")', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token,
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body: new URLSearchParams({
+                        id,
+                        targetList: 'Sprint',
+                        sprintId
+                    })
+                });
+            }
+        });
+    </script>
+}

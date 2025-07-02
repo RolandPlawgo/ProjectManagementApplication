@@ -1,0 +1,218 @@
+﻿@model ProjectManagementApplication.Models.SprintViewModels.SprintReviewViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery
+
+@{
+    ViewData["Title"] = "Sprint Review";
+    ViewData["ProjectId"] = Model.ProjectId;
+}
+
+<h1 class="h4">@Model.ProjectName</h1>
+<p>Sprint @Model.SprintId – @Model.SprintGoal</p>
+
+<div class="container">
+    <div class="row">
+        <div class="col-2 ps-0">
+            @await Html.PartialAsync("_SprintSidebar")
+        </div>
+        <div class="col-10">
+            <div class="container">
+                <div class="row">
+                    @await Html.PartialAsync("_SprintTabs")
+                </div>
+
+                @{
+                    var tokens = antiforgery.GetAndStoreTokens(ViewContext.HttpContext);
+                }
+                <form id="afForm">
+                    <input type="hidden" name="__RequestVerificationToken" value="@tokens.RequestToken" />
+                </form>
+
+                <div class="row gx-3">
+                    <!-- Product Backlog -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-primary">Product Backlog</div>
+                        </div>
+                        <div id="col-backlog" 
+                             class="list-group product-backlog-column board-column board-column-short"
+                             data-status="ProductBacklog">
+                            @foreach (var userStory in Model.ProductBacklogUserStories)
+                            {
+                                <div class="list-group-item card m-2 p-2 task" data-story-id="@userStory.Id">
+                                    <a href="#"
+                                       class="h6 card-title story-link text-decoration-none m-1 mb-3"
+                                       data-modal-url="@Url.Action("Details", "UserStories", new { id = userStory.Id })"
+                                       data-modal-id="userStoryDetailsModal">
+                                       @userStory.Title
+                                    </a>
+                                    <div class="d-flex align-items-center mt-2">
+                                        <span class="badge bg-light text-dark">
+                                            <span class="text-danger"> @userStory.CompletedTasksCount/@userStory.AllTasksCount</span>
+                                            tasks completed
+                                        </span>
+                                        <span class="ms-auto badge text-black epic-label">
+                                            @userStory.EpicTitle
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Sprint Backlog -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-primary">Sprint Backlog</div>
+                        </div>
+                        <div id="col-sprint" 
+                             class="list-group bg-light board-column board-column-short"
+                             data-status="SprintBacklog">
+                            @foreach (var userStory in Model.SprintBacklogUserStories)
+                            {
+                                <div class="list-group-item card m-2 p-2 task" data-story-id="@userStory.Id">
+                                    <a href="#"
+                                       class="h6 card-title story-link text-decoration-none m-1 mb-3"
+                                       data-modal-url="@Url.Action("Details", "UserStories", new { id = userStory.Id })"
+                                       data-modal-id="userStoryDetailsModal">
+                                        @userStory.Title
+                                    </a>
+                                    <div class="d-flex align-items-center mt-2">
+                                        <span class="badge bg-light text-dark">
+                                            <span class="text-danger"> @userStory.CompletedTasksCount/@userStory.AllTasksCount</span>
+                                            tasks completed
+                                        </span>
+                                        <span class="ms-auto badge text-black epic-label">
+                                            @userStory.EpicTitle
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Product Increment -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-primary">Product Increment</div>
+                        </div>
+                        <div id="col-increment" 
+                             class="list-group product-increment-column board-column board-column-short"
+                             data-status="ProductIncrement">
+                            @foreach (var userStory in Model.ProductIncrementUserStories)
+                            {
+                                <div class="list-group-item card m-2 p-2 task" data-story-id="@userStory.Id">
+                                    <a href="#"
+                                       class="h6 card-title story-link text-decoration-none m-1 mb-3"
+                                       data-modal-url="@Url.Action("Details", "UserStories", new { id = userStory.Id })"
+                                       data-modal-id="userStoryDetailsModal">
+                                        @userStory.Title
+                                    </a>
+                                    <div class="d-flex align-items-center mt-2">
+                                        <span class="badge bg-light text-dark">
+                                            <span class="text-danger"> @userStory.CompletedTasksCount/@userStory.AllTasksCount</span>
+                                            tasks completed
+                                        </span>
+                                        <span class="ms-auto badge text-black epic-label">
+                                            @userStory.EpicTitle
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <form asp-action="FinishSprint"
+                          method="post"
+                          asp-controller="SprintReview"
+                          asp-route-id="@Model.SprintId"
+                          class="d-inline w-100">
+                        @Html.AntiForgeryToken()
+
+                        <button id="finishSprintBtn"
+                                type="submit"
+                                class="btn btn-primary w-100"
+                                disabled="disabled">
+                            Finish sprint
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="userStoryDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+
+<script src="~/js/modals.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    (function(){
+      const token = document.querySelector('#afForm input[name="__RequestVerificationToken"]').value;
+      const sprintId = @Model.SprintId;
+
+      function makeSortable(columnId, targetStatus) {
+        new Sortable(document.getElementById(columnId), {
+          group: 'review-' + sprintId,
+          animation: 150,
+          onEnd: evt => {
+            const storyId = evt.item.dataset.storyId;
+            const newList = evt.to.dataset.status;
+            const token = document.querySelector('#afForm input').value;
+            fetch('@Url.Action("MoveCard", "SprintReview")', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'RequestVerificationToken': token
+              },
+              body: new URLSearchParams({
+                id: storyId,
+                targetList: newList
+              })
+            });
+          }
+        });
+      }
+        makeSortable('col-backlog');
+        makeSortable('col-sprint');
+        makeSortable('col-increment');
+    })();
+
+
+
+    (function () {
+        const sprintList = document.getElementById('col-sprint');
+        const finishBtn = document.getElementById('finishSprintBtn');
+
+        function updateFinishButton() {
+            const remaining = sprintList.querySelectorAll('.list-group-item').length;
+            if (remaining === 0) {
+                finishBtn.removeAttribute('disabled');
+                finishBtn.classList.remove('disabled');
+            } else {
+                finishBtn.setAttribute('disabled', 'disabled');
+                finishBtn.classList.add('disabled');
+            }
+        }
+
+        updateFinishButton();
+
+        function wireSortable(id) {
+            new Sortable(document.getElementById(id), {
+                group: 'review-@Model.SprintId',
+                animation: 150,
+                onAdd: updateFinishButton,
+                onRemove: updateFinishButton
+            });
+        }
+
+        wireSortable('col-backlog');
+        wireSortable('col-sprint');
+        wireSortable('col-increment');
+    })();
+</script>

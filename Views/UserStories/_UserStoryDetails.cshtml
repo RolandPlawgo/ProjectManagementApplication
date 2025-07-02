@@ -1,0 +1,17 @@
+﻿@model ProjectManagementApplication.Models.UserStoryViewModels.UserStoryDetailsViewModel
+
+<div class="modal-header">
+    <h5 class="modal-title">@Model.Title</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <p>@Model.Description</p>
+    }
+
+    <span class="ms-auto badge text-black epic-label">
+        @Model.EpicTitle
+    </span>
+</div>
