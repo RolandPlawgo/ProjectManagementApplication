@@ -6,19 +6,14 @@
     ViewData["ProjectId"] = Model.ProjectId;
 }
 
-@* <h1 class="h4">Backlog</h1>
-<p>@Model.ProjectName</p> *@
 <h1 class="h4">@Model.ProjectName</h1>
-@* <br /> *@
 <p>Product backlog</p>
-@* <hr /> *@
+
 <div class="container row">
     <div class="col-sm-2 ps-0">
-    @* <div class="col-2 ps-0"> *@
         @await Html.PartialAsync("_SprintSidebar")
     </div>
     <div class="accordion col-sm-10 col-md-8 offset-md-1" id="backlogAccordion">
-    @* <div class="accordion col-10" id="backlogAccordion"> *@
         <div class="accordion-item">
             <div class="accordion-header">
                 <div class="accordion-button bg-primary static-header" style="cursor: default;">

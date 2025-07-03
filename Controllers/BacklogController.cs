@@ -26,7 +26,7 @@ namespace ProjectManagementApplication.Controllers
         {
             var project = await _context.Projects
                 .Include(p => p.Epics)
-                    .ThenInclude(e => e.UserStories.Where(us => us.Status == Status.Backlog))
+                    .ThenInclude(e => e.UserStories.Where(us => us.Status == Status.Backlog).OrderByDescending(us => us.Id))
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null)

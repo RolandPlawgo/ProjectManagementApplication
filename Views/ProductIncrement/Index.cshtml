@@ -1,0 +1,188 @@
+﻿@model ProjectManagementApplication.Models.ProductIncrementViewModels.ProductIncrementViewModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Product Increment";
+    ViewData["ProjectId"] = Model.ProjectId;
+}
+
+<h1 class="h4">@Model.ProjectName</h1>
+<p>Product increment</p>
+
+<div class="container row">
+    <div class="col-2 ps-0">
+        @await Html.PartialAsync("_SprintSidebar")
+    </div>
+
+    <div class="col-sm-10 col-md-8 offset-md-1">
+        <div class="d-flex justify-content-end align-items-center mb-3">
+            <label for="viewSelect" class="form-label me-2 mb-0">View by:</label>
+            <select id="viewSelect" class="form-select form-select-sm w-auto">
+                <option value="sprints">Sprints</option>
+                <option value="epics">Epics</option>
+            </select>
+        </div>
+
+
+        <div id="sprintsSection">
+            <div class="accordion" id="backlogAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <div class="accordion-button bg-primary static-header" style="cursor: default;">
+                            Sprints
+                        </div>
+                    </h2>
+                </div>
+
+                @for (int i = 0; i < Model.Sprints.Count; i++)
+                {
+                    var sprint = Model.Sprints[i];
+                    var collapseId = $"epic-collapse-{i}";
+                    var headingId = $"epic-heading-{i}";
+                    var isFirst = (i == 0);
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="@headingId">
+                            <button class="accordion-button @(isFirst ? "" : "collapsed")"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#@collapseId"
+                                    aria-expanded="@(isFirst.ToString().ToLower())"
+                                    aria-controls="@collapseId">
+                                Sprint @sprint.Id – @sprint.SprintGoal
+                            </button>
+                        </h2>
+                        <div id="@collapseId"
+                             class="accordion-collapse collapse @(isFirst ? "show" : "")"
+                             aria-labelledby="@headingId"
+                             data-bs-parent="#backlogAccordion">
+                            <div class="accordion-body">
+                                @if (sprint.UserStories?.Any() == true)
+                                {
+                                    <ul class="list-group">
+                                        <li class="list-group-item bg-primary static-header" style="cursor: default;">
+                                            <h3 class="h6">User stories</h3>
+                                        </li>
+                                        @foreach (var story in sprint.UserStories)
+                                        {
+                                            <li class="list-group-item">
+                                                <a href="javascript:openModal('/UserStories/Edit/@story.Id','storyModal')"
+                                                   class="text-dark text-decoration-none d-flex align-items-center w-100"
+                                                   data-modal-url="@Url.Action("Details", "UserStories", new { id = story.Id })"
+                                                   data-modal-id="userStoryDetailsModal">
+                                                    <span>@story.Title</span>
+                                                    <span class="ms-auto badge text-dark epic-label">@story.EpicTitle</span>
+                                                </a>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">No user stories yet.</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div id="epicsSection" style="display:none;">
+            <div class="accordion" id="epicsAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <div class="accordion-button bg-primary static-header" style="cursor: default;">
+                            Epics
+                        </div>
+                    </h2>
+                </div>
+
+                @for (int i = 0; i < Model.Epics.Count; i++)
+                {
+                    var epic = Model.Epics[i];
+                    var eCollapse = $"epic-ecollapse-{i}";
+                    var eHeading = $"epic-eheading-{i}";
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="@eHeading">
+                            <button class="accordion-button collapsed"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#@eCollapse"
+                                    aria-expanded="false"
+                                    aria-controls="@eCollapse">
+                                Epic: @epic.Title
+                            </button>
+                        </h2>
+                        <div id="@eCollapse"
+                             class="accordion-collapse collapse"
+                             aria-labelledby="@eHeading"
+                             data-bs-parent="#epicsAccordion">
+                            <div class="accordion-body">
+                                @if (epic.UserStories?.Any() == true)
+                                {
+                                    <ul class="list-group">
+                                        <li class="list-group-item bg-primary static-header" style="cursor: default;">
+                                            <h3 class="h6">User stories</h3>
+                                        </li>
+                                        @foreach (var story in epic.UserStories)
+                                        {
+                                            <li class="list-group-item">
+                                                <a href="javascript:openModal('/UserStories/Edit/@story.Id','storyModal')"
+                                                   class="text-dark text-decoration-none d-flex align-items-center w-100"
+                                                   data-modal-url="@Url.Action("Details", "UserStories", new { id = story.Id })"
+                                                   data-modal-id="userStoryDetailsModal">
+                                                    <span>@story.Title</span>
+                                                    <span class="ms-auto badge text-dark epic-label">@story.EpicTitle</span>
+                                                </a>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <p class="text-muted">No user stories in this epic.</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="userStoryDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/modals.js"></script>
+    <script>
+        const VIEW_KEY = 'productIncrementViewBy';
+
+        function applyView(v) {
+            document.getElementById('sprintsSection').style.display = (v === 'sprints' ? '' : 'none');
+            document.getElementById('epicsSection').style.display = (v === 'epics' ? '' : 'none');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const select = document.getElementById('viewSelect');
+
+            const saved = localStorage.getItem(VIEW_KEY) || 'sprints';
+            select.value = saved;
+            applyView(saved);
+
+            select.addEventListener('change', () => {
+                const v = select.value;
+                applyView(v);
+                localStorage.setItem(VIEW_KEY, v);
+            });
+        });
+    </script>
+
+}

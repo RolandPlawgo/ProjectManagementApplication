@@ -1,4 +1,4 @@
-﻿<div class="sidebar d-flex flex-column p-2 border rounded-1" @* style="width: 200px;" *@>
+﻿<div class="sidebar border rounded-1 d-flex flex-column p-1">
     <a asp-controller="Backlog" asp-action="Index" asp-route-id="@ViewData["ProjectId"]"
        class="btn mb-2 text-start @(ViewContext.RouteData.Values["controller"]?.ToString() == "Backlog" ? "btn-primary" : "btn-light")">
         Backlog
