@@ -9,6 +9,9 @@ using WebOptimizer;
 using WebOptimizer.Sass;
 using ProjectManagementApplication.Authentication;
 using DartSassHost;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 
 namespace ProjectManagementApplication
 {
@@ -23,16 +26,27 @@ namespace ProjectManagementApplication
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
 
-            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
                 options.SignIn.RequireConfirmedAccount = false;
                 options.SignIn.RequireConfirmedEmail = false;
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
+            .AddDefaultTokenProviders()
+            .AddDefaultUI();
 
+            builder.Services.AddAuthorization(options =>
+                options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .Build());
+
+            builder.Services.AddControllers();
             builder.Services.AddControllersWithViews();
 
-            builder.Services.AddRazorPages();
+            builder.Services.AddRazorPages(options =>
+            {
+                options.Conventions.AllowAnonymousToAreaFolder("Identity", "/Account");
+            });
 
 
 
@@ -116,12 +130,38 @@ namespace ProjectManagementApplication
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Projects}/{action=Index}/{id?}");
+
+            app.MapGet("/api/meetings/upcoming", async ([FromServices] ApplicationDbContext db, [FromQuery] int minutes) =>
+            {
+                var now = DateTime.Now;
+                var cutoff = now.AddMinutes(minutes);
+
+                var upcoming = await db.Meetings
+                    .Where(m => m.Time >= now && m.Time <= cutoff)
+                    .Include(m => m.Project)
+                    .OrderBy(m => m.Time)
+                    .Select(m => new {
+                        m.Id,
+                        m.Name,
+                        Time = m.Time.ToString("dd.MM HH:mm"),
+                        TypeOfMeeting = m.TypeOfMeeting.ToString(),
+                        ProjectName = m.Project.Name,
+                        ProjectId = m.ProjectId
+                    })
+                    .ToListAsync();
+
+                return Results.Ok(upcoming);
+            });
+
+
             app.MapRazorPages();
+
 
             app.Run();
         }

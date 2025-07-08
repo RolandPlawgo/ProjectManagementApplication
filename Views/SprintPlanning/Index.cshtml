@@ -88,7 +88,7 @@
                                         <div class="card m-1 p-1 shadow-sm">
                                             <div class="card-body p-2">
                                                 <a href="#"
-                                                   data-modal-url="@Url.Action("Edit", "UserStories", new { id = story.Id })"
+                                                   data-modal-url="@Url.Action("Details", "UserStories", new { id = story.Id })"
                                                    data-modal-id="storyModal"
                                                    class="h6 card-title mb-1 story-link text-decoration-none">
                                                     @story.Title
@@ -117,7 +117,7 @@
                                         <div class="card p-1 shadow-sm m-1">
                                             <div class="card-body p-2">
                                                 <a href="#"
-                                                   data-modal-url="@Url.Action("Edit", "UserStories", new { id = story.Id })"
+                                                   data-modal-url="@Url.Action("Details", "UserStories", new { id = story.Id })"
                                                    data-modal-id="storyModal"
                                                    class="h6 card-title story-link text-decoration-none">
                                                     @story.Title
@@ -180,19 +180,22 @@
                         </div>
                     </form>
                 </div>
-                <div class="row">
-                    <form asp-action="StartSprint"
-                          method="post"
-                          asp-controller="SprintPlanning"
-                          asp-route-id="@Model.SprintId"
-                          class="d-inline">
-                        @Html.AntiForgeryToken()
+                @if (User.IsInRole("Scrum Master"))
+                {
+                    <div class="row">
+                        <form asp-action="StartSprint"
+                              method="post"
+                              asp-controller="SprintPlanning"
+                              asp-route-id="@Model.SprintId"
+                              class="d-inline">
+                            @Html.AntiForgeryToken()
 
-                        <button type="submit" class="btn btn-primary w-100">
-                            Start sprint
-                        </button>
-                    </form>
-                </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                Start sprint
+                            </button>
+                        </form>
+                    </div>
+                }
             </div>
         </div>
     </div>

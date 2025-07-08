@@ -19,5 +19,6 @@ namespace ProjectManagementApplication.Data.Entities
         public int SprintDuration { get; set; }
         public List<Epic> Epics { get; set; } = new List<Epic>();
         public List<Sprint> Sprints { get; set; } = new List<Sprint>();
+        public List<Meeting> Meetings { get; set; } = new List<Meeting>();
     }
 }

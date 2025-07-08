@@ -28,11 +28,25 @@ namespace ProjectManagementApplication.Controllers
         // GET: Projects
         public async Task<IActionResult> Index()
         {
-            var projects = await _context.Projects
-                .Include(p => p.Users)
-                .ToListAsync();
+            List<Project> projects = new List<Project>();
+            if (User.IsInRole("Scrum Master"))
+			{
+				projects = await _context.Projects
+				.Include(p => p.Users)
+				.ToListAsync();
+            }
+            else
+			{
+				var currentUser = await _userManager.GetUserAsync(User);
+				var userId = currentUser?.Id;
 
-            var cards = new List<ProjectCardViewModel>();
+				projects = await _context.Projects
+					.Include(p => p.Users)
+					.Where(p => p.Users.Any(u => u.Id == userId))
+					.ToListAsync();
+			}
+
+			var cards = new List<ProjectCardViewModel>();
             foreach (var p in projects)
             {
                 var model = new ProjectCardViewModel
@@ -70,16 +84,16 @@ namespace ProjectManagementApplication.Controllers
 
             foreach (var user in project.Users)
             {
-                var roles = (await _userManager.GetRolesAsync(user)).DefaultIfEmpty("User").ToList();
-                model.UsersWithRoles.Add(new UserWithRolesViewModel
+				var role = (await _userManager.GetRolesAsync(user)).DefaultIfEmpty("Developer").FirstOrDefault();
+				model.UsersWithRoles.Add(new UserWithRolesViewModel
                 {
-                    UserName = user.UserName ?? string.Empty,
-                    Roles = roles
+                    UserName = user.UserName ?? "",
+                    Role = role ?? ""
                 });
             }
             if (model == null) return NotFound();
 
-            return View(model);
+            return PartialView("_Details", model);
         }
 
         // GET: Projects/Create
@@ -88,7 +102,7 @@ namespace ProjectManagementApplication.Controllers
         {
             var model = new ProjectEditViewModel { SprintDuration = 2 };
             await PopulateSelections(model);
-            return View(model);
+            return PartialView("_Create", model);
         }
 
         // POST: Projects/Create
@@ -99,7 +113,8 @@ namespace ProjectManagementApplication.Controllers
             if (!ModelState.IsValid || !(await AllRolesExistInProject(model.UserIds)))
             {
                 await PopulateSelections(model);
-                return View(model);
+                //return View(model);
+                return PartialView("_Create", model);
             }
 
             var project = new Project
@@ -119,7 +134,8 @@ namespace ProjectManagementApplication.Controllers
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Index));
+            //return RedirectToAction(nameof(Index));
+            return Json(new { success = true });
         }
 
         // GET: Projects/Edit/5
@@ -143,31 +159,33 @@ namespace ProjectManagementApplication.Controllers
             };
             await PopulateSelections(model);
 
-            return View(model);
+            //return View(model);
+            return PartialView("_Edit", model);
         }
 
         // POST: Projects/Edit/5
         [Authorize(Roles = "Scrum Master")]
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, ProjectEditViewModel vm)
+        public async Task<IActionResult> Edit(int id, ProjectEditViewModel model)
         {
-            if (id != vm.Id || !ModelState.IsValid || !(await AllRolesExistInProject(vm.UserIds)))
+            if (id != model.Id || !ModelState.IsValid || !(await AllRolesExistInProject(model.UserIds)))
             {
-                await PopulateSelections(vm);
-                return View(vm);
+                await PopulateSelections(model);
+                //return View(vm);
+                return PartialView("_Edit", model);
             }
 
             var project = await _context.Projects
                 .Include(p => p.Users)
-                .FirstOrDefaultAsync(p => p.Id == vm.Id);
+                .FirstOrDefaultAsync(p => p.Id == model.Id);
             if (project == null) return NotFound();
 
-            project.Name = vm.Name;
-            project.Description = vm.Description;
-            project.SprintDuration = vm.SprintDuration;
+            project.Name = model.Name;
+            project.Description = model.Description;
+            project.SprintDuration = model.SprintDuration;
 
             project.Users.Clear();
-            foreach (var userId in vm.UserIds)
+            foreach (var userId in model.UserIds)
             {
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user != null)
@@ -176,53 +194,20 @@ namespace ProjectManagementApplication.Controllers
 
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Index));
+            return Json(new { success = true });
         }
 
-        // GET: Projects/Delete/5
         [Authorize(Roles = "Scrum Master")]
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null) return NotFound();
-            var project = await _context.Projects
-                .Include(p => p.Users)
-                .FirstOrDefaultAsync(p => p.Id == id);
-            if (project == null) return null!;
-
-            var model = new ProjectDetailsViewModel
-            {
-                Id = project.Id,
-                Name = project.Name,
-                Description = project.Description,
-                SprintDuration = project.SprintDuration
-            };
-
-            foreach (var user in project.Users)
-            {
-                var roles = (await _userManager.GetRolesAsync(user)).DefaultIfEmpty("User").ToList();
-                model.UsersWithRoles.Add(new UserWithRolesViewModel
-                {
-                    UserName = user.UserName ?? string.Empty,
-                    Roles = roles
-                });
-            }
-
-            if (model == null) return NotFound();
-
-            return View(model);
-        }
-
-        // POST: Projects/Delete/5
-        [Authorize(Roles = "Scrum Master")]
-        [HttpPost, ActionName("Delete"), ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        [HttpPost, ValidateAntiForgeryToken]
+        [HttpPost]
+        public async Task<IActionResult> Delete(int id)
         {
             var project = await _context.Projects.FindAsync(id);
             if (project == null) return NotFound();
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction(nameof(Index));
+            return Json(new { success = true });
         }
 
         private async Task PopulateSelections(ProjectEditViewModel vm)

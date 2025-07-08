@@ -1,10 +1,46 @@
-﻿async function openModal(url, modalId) {
+﻿document.body.addEventListener('click', function (e) {
+    if (!(e.target instanceof Element)) return;
+
+    const btn = e.target.closest('button[data-delete-url]');
+    if (!btn) return;
+
+    if (btn.closest('.modal-content')) return;
+
+    e.preventDefault();
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+    fetch(btn.getAttribute('data-delete-url'), {
+        method: 'POST',
+        headers: { 'RequestVerificationToken': token }
+    })
+        .then(res => res.json())
+        .then(json => {
+            if (json.success) location.reload();
+            else alert(json.error || 'Delete failed.');
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error deleting user.');
+        });
+});
+
+
+
+
+async function openModal(url, modalId) {
     const modalEl = document.getElementById(modalId);
     const contentEl = modalEl.querySelector('.modal-content');
     const response = await fetch(url);
     const html = await response.text();
 
     contentEl.innerHTML = html;
+
+    if (window.jQuery && window.jQuery.validator) {
+        jQuery.validator.unobtrusive.parse(contentEl);
+    }
+
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
 
@@ -41,25 +77,62 @@ function bindAjaxForm(form, modal) {
     }, { once: true });
 }
 
+//function bindDeleteButton(button, modal) {
+//    button.addEventListener('click', async () => {
+//        if (!confirm('Are you sure you want to delete this item?')) return;
+
+//        const url = button.getAttribute('data-delete-url');
+//        const res = await fetch(url, { method: 'POST' });
+//        if (res.ok) {
+//            const json = await res.json();
+//            if (json.success) {
+//                modal.hide();
+//                location.reload();
+//            } else {
+//                alert(json.error || 'Delete failed.');
+//            }
+//        } else {
+//            alert('Server error deleting item.');
+//        }
+//    }, { once: true });
+//}
 function bindDeleteButton(button, modal) {
     button.addEventListener('click', async () => {
-        if (!confirm('Are you sure you want to delete this item?')) return;
+        if (!confirm('Are you sure you want to delete this project?')) return;
 
         const url = button.getAttribute('data-delete-url');
-        const res = await fetch(url, { method: 'POST' });
-        if (res.ok) {
-            const json = await res.json();
-            if (json.success) {
-                modal.hide();
-                location.reload();
-            } else {
-                alert(json.error || 'Delete failed.');
+
+        const tokenInput = modal._element.querySelector('input[name="__RequestVerificationToken"]');
+        const token = tokenInput ? tokenInput.value : null;
+        if (!token) {
+            console.error("CSRF token not found in modal.");
+            return alert("Security check failed.");
+        }
+
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': token,
+                'X-Requested-With': 'XMLHttpRequest'
             }
+        });
+
+        if (!res.ok) {
+            return alert('Server rejected the delete request.');
+        }
+
+        const json = await res.json();
+        if (json.success) {
+            modal.hide();
+            location.reload();
         } else {
-            alert('Server error deleting item.');
+            alert(json.error || 'Delete failed.');
         }
     }, { once: true });
 }
+
+
+
 
 
 document.addEventListener('click', function (e) {
@@ -124,3 +197,5 @@ document.addEventListener('submit', function (e) {
             alert('Failed to add comment.');
         });
 }, false);
+
+

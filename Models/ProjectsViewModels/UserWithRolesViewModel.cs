@@ -3,6 +3,6 @@
     public class UserWithRolesViewModel
     {
         public string UserName { get; set; } = string.Empty;
-        public List<string> Roles { get; set; } = new();
+        public string Role { get; set; } = "";
     }
 }

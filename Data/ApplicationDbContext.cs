@@ -13,6 +13,7 @@ namespace ProjectManagementApplication.Data
         public DbSet<Sprint> Sprints { get; set; }
         public DbSet<Subtask> Subtasks { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<Meeting> Meetings { get; set; }
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {

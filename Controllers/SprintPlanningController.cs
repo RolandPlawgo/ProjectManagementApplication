@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -148,6 +149,7 @@ namespace ProjectManagementApplication.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> StartSprint(int id)
         {
             Sprint? sprint = await _context.Sprints.Where(s => s.Id == id)

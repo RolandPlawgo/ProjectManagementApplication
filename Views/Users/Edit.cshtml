@@ -1,7 +1,4 @@
-﻿@using ProjectManagementApplication.Authentication;
-@using Microsoft.AspNetCore.Identity;
-@inject UserManager<ApplicationUser> userManager;
-@model ProjectManagementApplication.Authentication.ApplicationUser;
+﻿@model ProjectManagementApplication.Models.UsersViewModels.CreateUserViewModel;
 @{
     ViewData["Title"] = "Edit user";
 }
@@ -29,9 +26,13 @@
             <div>
                 <label class="form-label">Role</label>
                 <select name="role" class="form-select">
-                    <option>Developer</option>
-                    <option>ProductOwner</option>
-                    <option>ScrumMaster</option>
+                    @foreach (string option in Model.RolesOptions)
+                    {
+                        <option value="@option"
+                                selected="@(option == Model.Role ? "selected" : null)">
+                            @option
+                        </option>
+                    }
                 </select>
             </div>
             <button type="submit" class="w-100 btn btn-primary btn-lg mt-4">Save</button>

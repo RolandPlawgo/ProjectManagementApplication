@@ -3,6 +3,7 @@ using ProjectManagementApplication.Data.Entities;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Models.SprintViewModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ProjectManagementApplication.Controllers
 {
@@ -117,6 +118,7 @@ namespace ProjectManagementApplication.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> FinishSprint(int id)
         {
             Sprint? sprint = await _context.Sprints.FindAsync(id);

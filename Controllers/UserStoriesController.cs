@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Data;
@@ -8,6 +9,7 @@ using ProjectManagementApplication.Models.UserStoryViewModels;
 
 namespace ProjectManagementApplication.Controllers
 {
+    [Authorize(Roles = "Product Owner")]
     public class UserStoriesController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -25,6 +27,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateUserStoryViewModel model)
         {
             if (!ModelState.IsValid)
@@ -110,6 +113,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(EditUserStoryViewModel model)
         {
             if (!ModelState.IsValid)
@@ -140,6 +144,7 @@ namespace ProjectManagementApplication.Controllers
 
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             try

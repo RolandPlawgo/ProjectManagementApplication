@@ -1,0 +1,71 @@
+﻿@model ProjectManagementApplication.Models.ProjectsViewModels.ProjectEditViewModel
+
+<div class="modal-header">
+    <h5 class="modal-title">Create Project</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+    <form id="createProjectForm" asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <input asp-for="Description" class="form-control" />
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="SprintDuration" class="form-label"></label>
+            <select asp-for="SprintDuration"
+                    asp-items="Model.SprintDurations"
+                    class="form-select">
+                <option value="" disabled>Choose duration…</option>
+            </select>
+            <span asp-validation-for="SprintDuration" class="text-danger"></span>
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="UserIds" class="form-label">Assigned Users</label>
+            <div>
+                @foreach (var user in Model.AllUsers)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               name="UserIds"
+                               value="@user.Value"
+                        @(user.Selected ? "checked" : "") />
+                        <label class="form-check-label">@user.Text</label>
+                    </div>
+                }
+            </div>
+            <span asp-validation-for="UserIds" class="text-danger"></span>
+        </div>
+    </form>
+</div>
+
+<div class="modal-footer">
+    <button type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal">
+        Cancel
+    </button>
+    <button type="submit"
+            form="createProjectForm"
+            class="btn btn-primary">
+        Create
+    </button>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

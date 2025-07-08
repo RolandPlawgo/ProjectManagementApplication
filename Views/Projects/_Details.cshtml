@@ -1,0 +1,43 @@
+﻿@using ProjectManagementApplication.Models.ProjectsViewModels
+@model ProjectDetailsViewModel
+
+<div class="modal-header">
+    <h1 class="h5">Project Details</h1>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form id="createStoryForm" method="post" asp-action="Edit">
+    <div class="modal-body">
+        <h2 class="h4">@Model.Name</h2>
+        <p>@Model.Description</p>
+        <p>Sprint duration: @Model.SprintDuration weeks</p>
+
+        <div class="mt-4">
+            <h3 class="h5">Assigned Users</h3>
+            @if (Model.UsersWithRoles.Any())
+            {
+                <ul class="list-unstyled">
+                    @foreach (var u in Model.UsersWithRoles)
+                    {
+                        <li>
+                            @u.UserName
+                            <small>(@u.Role)</small>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    @* <div class="modal-footer">
+        @if (User.IsInRole("Scrum Master"))
+        {
+            <a href="#"
+               class="btn btn-sm btn-primary"
+               data-modal-url="@Url.Action("Edit", "Projects", new { id = Model.Id })"
+               data-modal-id="projectFormModal">
+                Edit
+            </a>
+            <button asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-sm btn-danger">Delete</button>
+        }
+    </div> *@
+</form>

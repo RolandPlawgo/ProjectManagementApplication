@@ -1,66 +1,110 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NUglify.JavaScript.Syntax;
 using ProjectManagementApplication.Authentication;
-using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Helpers;
-using System.Drawing.Printing;
+using ProjectManagementApplication.Models.UsersViewModels;
 
 namespace ProjectManagementApplication.Controllers
 {
-    public class UsersController : Controller
+	[Authorize(Roles = "Scrum Master")]
+	public class UsersController : Controller
 	{
 		private readonly UserManager<ApplicationUser> _userManager;
-		public UsersController(UserManager<ApplicationUser> userManager)
+        private readonly RoleManager<IdentityRole> _roleManager;
+        public UsersController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
 		{
 			_userManager = userManager;
+            _roleManager = roleManager;
 		}
 
         private const int pageSize = 10;
 
-		// GET: UsersController
-		public ActionResult Index( int page = 1)
+		public async Task<ActionResult> Index( int page = 1)
 		{
 			int totalUsers = _userManager.Users.Count();
 			ViewBag.CurrentPage = page;
 			int totalPages = (int)Math.Ceiling(totalUsers / (double)pageSize);
 			ViewBag.TotalPages = totalPages;
 
-			var users = _userManager.Users
+			var users = await _userManager.Users
 				.Skip((page - 1) * pageSize)
 				.Take(pageSize)
-				.ToList();
+				.ToListAsync();
 
-			return View(users);
+            List<UsersViewModel> usersVm = new List<UsersViewModel>();
+            foreach (ApplicationUser user in users)
+            {
+                string role = "";
+                List<string> roles = (await _userManager.GetRolesAsync(user)).ToList();
+                if (!roles.Contains("Scrum Master") && !roles.Contains("Product Owner"))
+                {
+                    role = "Developer";
+                }
+                else
+				{
+					role = roles.FirstOrDefault() ?? "";
+				}
+
+                usersVm.Add(new UsersViewModel()
+                {
+                    Id = user.Id,
+                    Email = user.Email ?? "",
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Role = (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? ""
+				});
+            }
+            return View(usersVm);
         }
 
-        // GET: UsersController/Details/5
         public ActionResult Details(int id)
         {
             return View();
         }
 
-        // GET: UsersController/Create
         public ActionResult Create()
         {
-            return View();
+            List<string> rolesOptions = new List<string>()
+            {
+                "Developer"
+            };
+            var roles = _roleManager.Roles
+                            .Select(r => r.Name ?? "")
+                            .ToList();
+            if (roles == null)
+            {
+                return NotFound();   
+            }
+            rolesOptions.AddRange(roles);
+
+            CreateUserViewModel userVm = new CreateUserViewModel()
+            {
+                RolesOptions = rolesOptions
+            };
+            return View(userVm);
         }
 
-        // POST: UsersController/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ApplicationUser user, string role)
+        public async Task<IActionResult> Create(CreateUserViewModel userVm, string role)
         {
-            user.UserName = user.Email;
+            var user = new ApplicationUser
+            {
+                UserName = userVm.Email,
+                Email = userVm.Email,
+                FirstName = userVm.FirstName,
+                LastName = userVm.LastName
+            };
+
             string tempPassword = PasswordHelper.GeneratePassword(_userManager.Options.Password);
 
             var result = await _userManager.CreateAsync(user, tempPassword);
 
             if (result.Succeeded)
             {
-                if (role == "ScrumMaster" || role == "ProductOwner")
+                if (role == "Scrum Master" || role == "Product Owner")
                 {
                     await _userManager.AddToRoleAsync(user, role);
                 }
@@ -76,14 +120,13 @@ namespace ProjectManagementApplication.Controllers
                 }
                 catch
                 {
-                    return View();
+                    return View(userVm);
                 }
             }
 
-            return View(user);
+            return View(userVm);
         }
 
-        // GET: UsersController/Edit/5
         public async Task<IActionResult> Edit(string id)
         {
             ApplicationUser? user = await _userManager.FindByIdAsync(id);
@@ -91,13 +134,35 @@ namespace ProjectManagementApplication.Controllers
 			{
 				return NotFound();
 			}
-			return View(user);
+
+            List<string> rolesOptions = new List<string>()
+            {
+                "Developer"
+            };
+            var roles = _roleManager.Roles
+                            .Select(r => r.Name ?? "")
+                            .ToList();
+            if (roles == null)
+            {
+                return NotFound();
+            }
+            rolesOptions.AddRange(roles);
+
+            CreateUserViewModel userVm = new CreateUserViewModel()
+            {
+                Id = id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Role = (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? "",
+                RolesOptions = rolesOptions
+            };
+            return View(userVm);
         }
 
-        // POST: UsersController/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, ApplicationUser model, string role)
+        public async Task<IActionResult> Edit(string id, CreateUserViewModel model, string role)
         {
             ApplicationUser? user = await _userManager.FindByIdAsync(id);
 			if (user == null)
@@ -111,7 +176,7 @@ namespace ProjectManagementApplication.Controllers
 
             var currentRoles = await _userManager.GetRolesAsync(user);
             await _userManager.RemoveFromRolesAsync(user, currentRoles);
-            if (role == "ScrumMaster" || role == "ProductOwner")
+            if (role == "Scrum Master" || role == "Product Owner")
             {
                 await _userManager.AddToRoleAsync(user, role);
             }
@@ -123,23 +188,29 @@ namespace ProjectManagementApplication.Controllers
             }
             catch
             {
-                return View();
+                return View(model);
             }
         }
 
-        // POST: UsersController/Delete/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(string id, IFormCollection collection)
+        public async Task<IActionResult> Delete(string id)
         {
-            ApplicationUser? user = _userManager.Users.Where(u => u.Id == id).FirstOrDefault();
-            if (user is null)
+            try
             {
-                return NotFound();
-            }
-            await _userManager.DeleteAsync(user);
+                ApplicationUser? user = _userManager.Users.Where(u => u.Id == id).FirstOrDefault();
+                if (user is null)
+                {
+                    return NotFound();
+                }
+                await _userManager.DeleteAsync(user);
 
-            return RedirectToAction(nameof(Index));
+                return Json(new { success = true });
+            }
+			catch
+			{
+				return Json(new { success = false });
+			}
 		}
 	}
 }

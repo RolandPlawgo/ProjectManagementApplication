@@ -5,7 +5,7 @@
     ViewData["Title"] = "Projects";
 }
 
-<h1>Projects</h1>
+<h1 class="h2">Projects</h1>
 
 <div class="container mt-4">
     <div class="row row-cols-1 row-cols-md-3 g-4">
@@ -19,10 +19,26 @@
 
                         <div class="mt-auto d-flex align-items-center">
                             <div class="btn-group btn-group-sm">
-                                <a asp-controller="Backlog" asp-action="Index" asp-route-id="@card.Id" class="btn btn-sm btn-primary me-2">Open</a>
-                                <a asp-action="Details" asp-route-id="@card.Id" class="btn btn-sm btn-secondary">Details</a>
+                                <a asp-controller="Backlog" asp-action="Index" asp-route-id="@card.Id" class="btn btn-sm btn-primary">Open</a>
+                                @if (User.IsInRole("Scrum Master"))
+                                {
+                                    <a href="#"
+                                       class="btn btn-sm btn-secondary ps-2 pe-2"
+                                       data-modal-url="@Url.Action("Edit", "Projects", new { id = card.Id })"
+                                       data-modal-id="projectDetailsModal">
+                                        Edit
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a href="#"
+                                       class="btn btn-sm btn-secondary"
+                                       data-modal-url="@Url.Action("Details", "Projects", new { id = card.Id })"
+                                       data-modal-id="projectDetailsModal">
+                                        Details
+                                    </a>
+                                }
                             </div>
-
                             <div class="ms-auto d-flex flex-wrap gap-1 mt-3" style="max-width: calc(100% - 120px);">
                                 @foreach (var init in card.UserInitials)
                                 {
@@ -36,10 +52,34 @@
         }
     </div>
 </div>
-
+<div class="mt-3">
 @if (User.IsInRole("Scrum Master"))
 {
-    <p class="mt-4">
-        <a class="btn btn-sm btn-primary" asp-action="Create">Create New</a>
-    </p>
+    <a href="#"
+       class="btn btn-sm btn-primary"
+       data-modal-url="@Url.Action("Create", "Projects")"
+       data-modal-id="projectFormModal">
+        Create New
+    </a>
+}
+</div>
+
+<div class="modal fade" id="projectDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="projectFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/modals.js"></script>
 }

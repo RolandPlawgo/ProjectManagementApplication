@@ -1,10 +1,9 @@
 ﻿$primary: #DEC2F6;
-/*$secondary: #EBEBEB;*/
 $secondary: #F8F8F8;
-/*$secondary: #B9F6B3;*/
 $black: #31303C;
 $dark: #31303C;
 $danger: #BC3E3E;
+$bg-primary: #BC3E3E;
 
 @import "../lib/bootstrap/scss/bootstrap";
 
@@ -30,6 +29,13 @@ html {
 
 body {
     margin-bottom: 60px;
+}
+
+.active-tab {
+    background-color: #e8d5f8;
+}
+.not-active-tab {
+    background-color: #efefef;
 }
 
 

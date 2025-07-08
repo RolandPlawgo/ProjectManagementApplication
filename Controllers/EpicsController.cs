@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
@@ -7,6 +8,7 @@ using SQLitePCL;
 
 namespace ProjectManagementApplication.Controllers
 {
+    [Authorize(Roles = "Product Owner")]
     public class EpicsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -24,6 +26,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(EpicViewModel model)
         {
             if (!ModelState.IsValid)
@@ -56,6 +59,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(EpicViewModel model)
         {
             if (!ModelState.IsValid)
@@ -72,6 +76,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             var epic = await _context.Epics
