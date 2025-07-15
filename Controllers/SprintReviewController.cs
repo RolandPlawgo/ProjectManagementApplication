@@ -10,9 +10,12 @@ namespace ProjectManagementApplication.Controllers
     public class SprintReviewController : Controller
     {
         private readonly ApplicationDbContext _context;
-        public SprintReviewController(ApplicationDbContext context)
+        private readonly IAuthorizationService _authorizationService;
+
+        public SprintReviewController(ApplicationDbContext context, IAuthorizationService authorizationService)
         {
             _context = context;
+            _authorizationService = authorizationService;
         }
 
         public async Task<IActionResult> Index(int id)
@@ -21,6 +24,9 @@ namespace ProjectManagementApplication.Controllers
                 .Include(s => s.Project)
                 .FirstOrDefaultAsync();
             if (sprint == null) return NotFound();
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(sprint.ProjectId));
+            if (!authResult.Succeeded) return Forbid();
 
             if (!sprint.Active || !sprint.EndDate.HasValue || sprint.EndDate > DateTime.Now)
             {
@@ -94,23 +100,29 @@ namespace ProjectManagementApplication.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MoveCard(int id, string targetList)
         {
-            UserStory? story = await _context.UserStories.FindAsync(id);
-            if (story == null) return NotFound();
+            UserStory? userStory = await _context.UserStories
+                .Where(u => u.Id == id)
+                .Include(u => u.Sprint)
+                .FirstOrDefaultAsync();
+            if (userStory == null) return Json(new { success = false, error = "User story not found." });
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(userStory.Sprint.ProjectId));
+            if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
 
             if (targetList == "ProductBacklog")
             {
-                story.Status = Status.Backlog;
+                userStory.Status = Status.Backlog;
             }
             if (targetList == "SprintBacklog")
             {
-                story.Status = Status.Sprint;
+                userStory.Status = Status.Sprint;
             }
             if (targetList == "ProductIncrement")
             {
-                story.Status = Status.ProductIncrement;
+                userStory.Status = Status.ProductIncrement;
             }
 
-            _context.UserStories.Update(story);
+            _context.UserStories.Update(userStory);
             await _context.SaveChangesAsync();
 
             return Json(new { success = true });
@@ -118,18 +130,21 @@ namespace ProjectManagementApplication.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Scrum Master")]
+        [Authorize(Roles = "Product Owner")]
         public async Task<IActionResult> FinishSprint(int id)
         {
             Sprint? sprint = await _context.Sprints.FindAsync(id);
             if (sprint == null) return NotFound();
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(sprint.ProjectId));
+            if (!authResult.Succeeded) return Forbid();
 
             sprint.Active = false;
 
             _context.Sprints.Update(sprint);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Index", "ProductIncrement");
+            return RedirectToAction("Index", "ProductIncrement", new {id = sprint.ProjectId});
         }
     }
 }

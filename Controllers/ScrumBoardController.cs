@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +14,14 @@ namespace ProjectManagementApplication.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
-        public ScrumBoardController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        private readonly IAuthorizationService _authorizationService;
+        public ScrumBoardController(ApplicationDbContext context, 
+            UserManager<ApplicationUser> userManager, 
+            IAuthorizationService authorizationService)
         {
             _context = context;
             _userManager = userManager;
+            _authorizationService = authorizationService;
         }
 
         public async Task<IActionResult> Index(int id)
@@ -25,6 +30,9 @@ namespace ProjectManagementApplication.Controllers
                 .Include(s => s.Project)
                 .FirstOrDefaultAsync();
             if (sprint == null) return NotFound();
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(sprint.ProjectId));
+            if (!authResult.Succeeded) return Forbid();
 
             if (!sprint.Active || (sprint.EndDate.HasValue && sprint.EndDate < DateTime.Now))
             {
@@ -107,11 +115,19 @@ namespace ProjectManagementApplication.Controllers
         [ValidateAntiForgeryToken]
         public async Task<JsonResult> MoveCard (int id, string targetList)
         {
-            Subtask? task = await _context.Subtasks.FindAsync(id);
+            Subtask? task = await _context.Subtasks
+                .Where(s => s.Id == id)
+                .Include(t => t.UserStory)
+                    .ThenInclude(u => u.Sprint)
+                .FirstOrDefaultAsync();
             if (task == null)
             {
                 return Json(new { success = false });
             }
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(task.UserStory.Sprint.ProjectId));
+            if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
+
             if (targetList == "todo")
             {
                 task.AssignedUserId = null;

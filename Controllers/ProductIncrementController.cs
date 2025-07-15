@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
@@ -9,10 +10,12 @@ namespace ProjectManagementApplication.Controllers
     public class ProductIncrementController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuthorizationService _authorizationService;
 
-        public ProductIncrementController(ApplicationDbContext context)
+        public ProductIncrementController(ApplicationDbContext context, IAuthorizationService authorizationService)
         {
             _context = context;
+            _authorizationService = authorizationService;
         }
         
 
@@ -23,9 +26,13 @@ namespace ProjectManagementApplication.Controllers
                 .FirstOrDefaultAsync();
             if (project == null) return NotFound();
 
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
+            if (!authResult.Succeeded) return Forbid();
+
             List<SprintSummaryViewModel> sprintsVm = new List<SprintSummaryViewModel>();
             List<Sprint> sprints = await _context.Sprints.Where(s => s.ProjectId == id)
-                .Include(s => s.UserStories).ThenInclude(u => u.Epic)
+                .Include(s => s.UserStories.Where(u => u.Status == Status.ProductIncrement))
+                    .ThenInclude(u => u.Epic)
                 .OrderByDescending(s => s.Id)
                 .ToListAsync();
             foreach (Sprint sprint in sprints)

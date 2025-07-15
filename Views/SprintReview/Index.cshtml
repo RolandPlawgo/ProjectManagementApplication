@@ -121,22 +121,25 @@
                         </div>
                     </div>
                 </div>
-                <div class="row mt-3">
-                    <form asp-action="FinishSprint"
-                          method="post"
-                          asp-controller="SprintReview"
-                          asp-route-id="@Model.SprintId"
-                          class="d-inline w-100">
-                        @Html.AntiForgeryToken()
+                @if (User.IsInRole("Product Owner"))
+                {
+                    <div class="row mt-3">
+                        <form asp-action="FinishSprint"
+                              method="post"
+                              asp-controller="SprintReview"
+                              asp-route-id="@Model.SprintId"
+                              class="d-inline w-100">
+                            @Html.AntiForgeryToken()
 
-                        <button id="finishSprintBtn"
-                                type="submit"
-                                class="btn btn-primary w-100"
-                                disabled="disabled">
-                            Finish sprint
-                        </button>
-                    </form>
-                </div>
+                            <button id="finishSprintBtn"
+                                    type="submit"
+                                    class="btn btn-primary w-100"
+                                    disabled="disabled">
+                                Finish sprint
+                            </button>
+                        </form>
+                    </div>   
+                }
             </div>
         </div>
     </div>

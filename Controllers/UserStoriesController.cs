@@ -1,167 +1,169 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using ProjectManagementApplication.Authentication;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
-using ProjectManagementApplication.Models.SprintViewModels;
 using ProjectManagementApplication.Models.UserStoryViewModels;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace ProjectManagementApplication.Controllers
+public class UserStoriesController : Controller
 {
-    [Authorize(Roles = "Product Owner")]
-    public class UserStoriesController : Controller
+    private readonly ApplicationDbContext _context;
+    private readonly IAuthorizationService _authorizationService;
+
+    public UserStoriesController(ApplicationDbContext context, IAuthorizationService authorizationService)
     {
-        private readonly ApplicationDbContext _context;
-        public UserStoriesController(ApplicationDbContext context)
+        _context = context;
+        _authorizationService = authorizationService;
+    }
+
+    // GET: /UserStories/Create?epicId=5
+    [HttpGet]
+    [Authorize(Roles = "Product Owner")]
+    public async Task<IActionResult> Create(int epicId)
+    {
+        var epic = await _context.Epics.FirstOrDefaultAsync(e => e.Id == epicId);
+        if (epic == null) return NotFound();
+
+        var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(epic.ProjectId));
+        if (!authResult.Succeeded) return Forbid();
+
+        var vm = new CreateUserStoryViewModel { EpicId = epicId };
+        return PartialView("_CreateUserStory", vm);
+    }
+
+    // POST: /UserStories/Create
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Product Owner")]
+    public async Task<IActionResult> Create(CreateUserStoryViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return PartialView("_CreateUserStory", model);
+
+        var epic = await _context.Epics
+            .Include(e => e.Project)
+                .ThenInclude(p => p.Users)
+            .FirstOrDefaultAsync(e => e.Id == model.EpicId);
+        if (epic == null) return Json(new { success = false, error = "Epic not found." }); 
+
+        var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(epic.ProjectId));
+        if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
+
+        var story = new UserStory
         {
-            _context = context;
-        }
+            EpicId = model.EpicId,
+            Title = model.Title,
+            Description = model.Description,
+            Status = Status.Backlog
+        };
+        _context.UserStories.Add(story);
+        await _context.SaveChangesAsync();
+        return Json(new { success = true });
+    }
 
-        // GET: /UserStory/CreateStory?epicId=5
-        [HttpGet]
-        public IActionResult Create(int epicId)
+    // GET: /UserStories/Details/5
+    [HttpGet]
+    public async Task<IActionResult> Details(int id)
+    {
+        var userStory = await _context.UserStories
+            .Include(u => u.Epic)
+            .Include(u => u.Subtasks)
+            .FirstOrDefaultAsync(u => u.Id == id);
+        if (userStory == null) return NotFound();
+
+        var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(userStory.Epic.ProjectId));
+        if (!authResult.Succeeded) return Forbid();
+
+        var vm = new UserStoryDetailsViewModel
         {
-            var vm = new CreateUserStoryViewModel { EpicId = epicId };
-            return PartialView("_CreateUserStory", vm);
-        }
+            Id = userStory.Id,
+            Title = userStory.Title,
+            Description = userStory.Description,
+            EpicTitle = userStory.Epic.Title
+        };
+        return PartialView("_UserStoryDetails", vm);
+    }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CreateUserStoryViewModel model)
+    // GET: /UserStories/Edit/5
+    [HttpGet]
+    [Authorize(Roles = "Product Owner")]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var userStory = await _context.UserStories
+            .Include(u => u.Epic)
+            .FirstOrDefaultAsync(u => u.Id == id);
+        if (userStory == null) return NotFound();
+
+        var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(userStory.Epic.ProjectId));
+        if (!authResult.Succeeded) return Forbid();
+
+        var epics = await _context.Epics
+            .Where(e => e.ProjectId == userStory.Epic.ProjectId)
+            .ToListAsync();
+
+        var vm = new EditUserStoryViewModel
         {
-            if (!ModelState.IsValid)
-                return PartialView("_CreateUserStory", model);
-
-            try
+            Id = userStory.Id,
+            EpicId = userStory.EpicId,
+            Title = userStory.Title,
+            Description = userStory.Description,
+            Epics = epics.Select(e => new SelectListItem
             {
-                var story = new UserStory
-                {
-                    EpicId = model.EpicId,
-                    Title = model.Title,
-                    Description = model.Description,
-                    Status = Status.Backlog
-                };
+                Value = e.Id.ToString(),
+                Text = e.Title,
+                Selected = (e.Id == userStory.EpicId)
+            }).ToList()
+        };
+        return PartialView("_EditUserStory", vm);
+    }
 
-                _context.UserStories.Add(story);
-                await _context.SaveChangesAsync();
-                return Json(new { success = true });
-            }
-            catch (DbUpdateException ex)
-            {
-                // log ex here
-                ModelState.AddModelError("", "Error saving user story.");
-                return PartialView("_CreateUserStory", model);
-            }
-        }
+    // POST: /UserStories/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Product Owner")]
+    public async Task<IActionResult> Edit(EditUserStoryViewModel vm)
+    {
+        if (!ModelState.IsValid)
+            return PartialView("_EditUserStory", vm);
 
+        var userStory = await _context.UserStories
+            .Include(u => u.Epic)
+            .FirstOrDefaultAsync(u => u.Id == vm.Id);
+        if (userStory == null) return Json(new { success = false, error = "User story not found." });
 
-        [HttpGet]
-        public async Task<IActionResult> Edit(int id)
-        {
-            var userStory = await _context.UserStories.FindAsync(id);
-            if (userStory == null) return NotFound();
+        var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(userStory.Epic.ProjectId));
+        if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
 
-            Epic? epic = await _context.Epics.FindAsync(userStory.EpicId);
-            if (epic == null)
-            {
-                return null;
-            }
-            int? projectId = epic.ProjectId;
-            if (projectId == null)
-            {
-                return NotFound();
-            }
-            List<Epic> epics = await _context.Epics.Where(epic => epic.ProjectId == projectId).ToListAsync();
+        userStory.EpicId = vm.EpicId;
+        userStory.Title = vm.Title;
+        userStory.Description = vm.Description;
+        _context.Update(userStory);
+        await _context.SaveChangesAsync();
+        return Json(new { success = true });
+    }
 
-            var model = new EditUserStoryViewModel
-            {
-                Id = userStory.Id,
-                EpicId = userStory.EpicId,
-                Title = userStory.Title,
-                Description = userStory.Description,
-                Epics = epics.Select(e => new SelectListItem
-                {
-                    Value = e.Id.ToString(),
-                    Text = e.Title,
-                    Selected = e.Id == userStory.EpicId
-                }).ToList()
-            };
+    // POST: /UserStories/Delete/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Product Owner")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var userStory = await _context.UserStories
+            .Include(u => u.Epic)
+            .FirstOrDefaultAsync(u => u.Id == id);
+        if (userStory == null) return Json(new { success = false, error = "User story not found." });
 
-            return PartialView("_EditUserStory", model);
-        }
+        var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(userStory.Epic.ProjectId));
+        if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
 
-        [HttpGet]
-        public async Task<IActionResult> Details(int id)
-        {
-            var story = await _context.UserStories
-                .Include(u => u.Epic)
-                .Include(u => u.Subtasks)
-                .FirstOrDefaultAsync(u => u.Id == id);
-
-            if (story == null) return NotFound();
-
-            var model = new UserStoryDetailsViewModel
-            {
-                Id = story.Id,
-                Title = story.Title,
-                Description = story.Description,
-                EpicTitle = story.Epic?.Title ?? ""
-            };
-
-            return PartialView("_UserStoryDetails", model);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(EditUserStoryViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return PartialView("_EditUserStory", model);
-            }
-
-            try
-            {
-                UserStory? story = await _context.UserStories.FindAsync(model.Id);
-                if (story == null)
-                    return NotFound();
-
-                story.EpicId = model.EpicId;
-                story.Title = model.Title;
-                story.Description = model.Description;
-
-                _context.UserStories.Update(story);
-                await _context.SaveChangesAsync();
-                return Json(new { success = true });
-            }
-            catch (Exception)
-            {
-                ModelState.AddModelError("", "Unable to save changes.");
-                return PartialView("_EditUserStory", model);
-            }
-        }
-
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
-        {
-            try
-            {
-                UserStory? userStory = await _context.UserStories.FindAsync(id);
-                if (userStory == null)
-                {
-                    return NotFound();
-                }
-                _context.UserStories.Remove(userStory);
-                _context.SaveChanges();
-                return Json(new { success = true });
-            }
-            catch
-            {
-                return Json(new { success = false });
-            }
-        }
+        _context.UserStories.Remove(userStory);
+        await _context.SaveChangesAsync();
+        return Json(new { success = true });
     }
 }

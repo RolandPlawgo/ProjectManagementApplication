@@ -49,6 +49,8 @@ namespace ProjectManagementApplication
             });
 
 
+            builder.Services.AddScoped<IAuthorizationHandler, ProjectMemberHandler>();
+
 
             builder.Services.AddJsEngineSwitcher(options =>
             {
@@ -100,11 +102,24 @@ namespace ProjectManagementApplication
                 {
                     FirstName = "Anna",
                     LastName = "Wiśniewska",
-                    Email = "annawisniwska@mail.com",
-                    UserName = "annawisniwska@mail.com"
+                    Email = "annawisniewska@mail.com",
+                    UserName = "annawisniewska@mail.com"
                 };
                 await userManager.CreateAsync(productOwner, "Qwerty1!");
                 await userManager.AddToRoleAsync(productOwner, "Product Owner");
+
+                var project = await context.Projects
+                               .Include(p => p.Users)
+                               .SingleAsync(p => p.Id == 100);
+
+                
+                ApplicationUser? user = await userManager.FindByEmailAsync(scrumMaster.Email!);
+
+                if (!project.Users.Any(u => u.Id == user.Id))
+                {
+                    project.Users.Add(user!);
+                    await context.SaveChangesAsync();
+                }
             }
 
 

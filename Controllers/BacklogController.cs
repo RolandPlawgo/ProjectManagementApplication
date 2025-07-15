@@ -1,60 +1,59 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using ProjectManagementApplication.Authentication;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
 using ProjectManagementApplication.Models.BacklogViewModels;
-using ProjectManagementApplication.Models.UserStoryViewModels;
 
-namespace ProjectManagementApplication.Controllers
+public class BacklogController : Controller
 {
-    public class BacklogController : Controller
+    private readonly ApplicationDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuthorizationService _authorizationService;
+
+    public BacklogController(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        IAuthorizationService authorizationService)
     {
-        private readonly ApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
+        _context = context;
+        _userManager = userManager;
+        _authorizationService = authorizationService;
+    }
 
-        public BacklogController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+    public async Task<IActionResult> Index(int id)
+    {
+        var project = await _context.Projects
+            .Include(p => p.Users)
+            .Include(p => p.Epics)
+                .ThenInclude(e => e.UserStories
+                    .Where(u => u.Status == Status.Backlog)
+                    .OrderByDescending(u => u.Id))
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (project == null) return NotFound();
+
+        var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
+        if (!authResult.Succeeded) return Forbid();
+
+        var model = new BacklogViewModel
         {
-            _context = context;
-            _userManager = userManager;
-        }
-
-        public async Task<IActionResult> Index(int id)
-        {
-            var project = await _context.Projects
-                .Include(p => p.Epics)
-                    .ThenInclude(e => e.UserStories.Where(us => us.Status == Status.Backlog).OrderByDescending(us => us.Id))
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (project == null)
+            ProjectId = project.Id,
+            ProjectName = project.Name,
+            Epics = project.Epics.Select(e => new EpicSummaryViewModel
             {
-                return NotFound();
-            }
+                Id = e.Id,
+                Title = e.Title,
+                UserStories = e.UserStories.Select(us => new UserStorySummaryViewModel
+                {
+                    Id = us.Id,
+                    Title = us.Title
+                }).ToList()
+            }).ToList()
+        };
 
-            var model = new BacklogViewModel
-            {
-                ProjectId = project.Id,
-                ProjectName = project.Name,
-                Epics = project.Epics
-                    .Select(e => new EpicSummaryViewModel
-                    {
-                        Id = e.Id,
-                        Title = e.Title,
-                        UserStories = e.UserStories
-                            .Select(us => new UserStorySummaryViewModel
-                            {
-                                Id = us.Id,
-                                Title = us.Title
-                            })
-                            .ToList()
-                    })
-                    .ToList()
-            };
-
-            return View(model);
-        }
+        return View(model);
     }
 }

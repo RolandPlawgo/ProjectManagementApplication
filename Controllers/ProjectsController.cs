@@ -18,25 +18,19 @@ namespace ProjectManagementApplication.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuthorizationService _authorizationService;
 
-        public ProjectsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public ProjectsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService)
         {
             _context = context;
             _userManager = userManager;
+            _authorizationService = authorizationService;
         }
 
         // GET: Projects
         public async Task<IActionResult> Index()
         {
             List<Project> projects = new List<Project>();
-            if (User.IsInRole("Scrum Master"))
-			{
-				projects = await _context.Projects
-				.Include(p => p.Users)
-				.ToListAsync();
-            }
-            else
-			{
 				var currentUser = await _userManager.GetUserAsync(User);
 				var userId = currentUser?.Id;
 
@@ -44,9 +38,8 @@ namespace ProjectManagementApplication.Controllers
 					.Include(p => p.Users)
 					.Where(p => p.Users.Any(u => u.Id == userId))
 					.ToListAsync();
-			}
 
-			var cards = new List<ProjectCardViewModel>();
+            var cards = new List<ProjectCardViewModel>();
             foreach (var p in projects)
             {
                 var model = new ProjectCardViewModel
@@ -66,13 +59,15 @@ namespace ProjectManagementApplication.Controllers
         }
 
         // GET: Projects/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int id)
         {
-            if (id == null) return NotFound();
             var project = await _context.Projects
                 .Include(p => p.Users)
                 .FirstOrDefaultAsync(p => p.Id == id);
-            if (project == null) return null!;
+            if (project == null) return NotFound();
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
+            if (!authResult.Succeeded) return Forbid();
 
             var model = new ProjectDetailsViewModel
             {
@@ -110,10 +105,18 @@ namespace ProjectManagementApplication.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ProjectEditViewModel model)
         {
-            if (!ModelState.IsValid || !(await AllRolesExistInProject(model.UserIds)))
+            if (!ModelState.IsValid)
             {
                 await PopulateSelections(model);
-                //return View(model);
+                return PartialView("_Create", model);
+            }
+            if (!await AllRolesExistInProject(model.UserIds))
+            {
+                ModelState.AddModelError(
+                    key: "",
+                    errorMessage: "You must assign at least one Scrum Master, one Product Owner and one Developer."
+                );
+                await PopulateSelections(model);
                 return PartialView("_Create", model);
             }
 
@@ -134,20 +137,20 @@ namespace ProjectManagementApplication.Controllers
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
-            //return RedirectToAction(nameof(Index));
             return Json(new { success = true });
         }
 
         // GET: Projects/Edit/5
         [Authorize(Roles = "Scrum Master")]
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int id)
         {
-            if (id == null) return NotFound();
-
             var project = await _context.Projects
                 .Include(p => p.Users)
-                .FirstOrDefaultAsync(p => p.Id == id.Value);
+                .FirstOrDefaultAsync(p => p.Id == id);
             if (project == null) return NotFound();
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
+            if (!authResult.Succeeded) return Forbid();
 
             var model = new ProjectEditViewModel
             {
@@ -159,7 +162,6 @@ namespace ProjectManagementApplication.Controllers
             };
             await PopulateSelections(model);
 
-            //return View(model);
             return PartialView("_Edit", model);
         }
 
@@ -168,17 +170,28 @@ namespace ProjectManagementApplication.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, ProjectEditViewModel model)
         {
-            if (id != model.Id || !ModelState.IsValid || !(await AllRolesExistInProject(model.UserIds)))
+            if (id != model.Id || !ModelState.IsValid)
             {
                 await PopulateSelections(model);
-                //return View(vm);
+                return PartialView("_Edit", model);
+            }
+            if (!await AllRolesExistInProject(model.UserIds))
+            {
+                ModelState.AddModelError(
+                    key: "",
+                    errorMessage: "You must assign at least one Scrum Master, one Product Owner and one Developer."
+                );
+                await PopulateSelections(model);
                 return PartialView("_Edit", model);
             }
 
             var project = await _context.Projects
                 .Include(p => p.Users)
                 .FirstOrDefaultAsync(p => p.Id == model.Id);
-            if (project == null) return NotFound();
+            if (project == null) return Json(new { success = false, error = "Project not found." });
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
+            if (!authResult.Succeeded) return Json(new { success = false, error = "You’re not allowed to edit that project." });
 
             project.Name = model.Name;
             project.Description = model.Description;
@@ -203,7 +216,11 @@ namespace ProjectManagementApplication.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var project = await _context.Projects.FindAsync(id);
-            if (project == null) return NotFound();
+            if (project == null) return Json(new { success = false, error = "Project not found." });
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
+            if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
+
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
 

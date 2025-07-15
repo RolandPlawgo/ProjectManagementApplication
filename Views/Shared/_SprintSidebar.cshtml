@@ -8,11 +8,11 @@
        class="btn mb-2 text-start @((ViewContext.RouteData.Values["controller"]?.ToString() == "SprintPlanning" 
         || ViewContext.RouteData.Values["controller"]?.ToString() == "ScrumBoard" 
         || ViewContext.RouteData.Values["controller"]?.ToString() == "SprintReview") ? "btn-primary" : "btn-light")">
-        Scrum board
+        Sprint
     </a>
 
     <a asp-controller="ProductIncrement" asp-action="Index" asp-route-id="@ViewData["ProjectId"]"
        class="btn mb-2 text-start @(ViewContext.RouteData.Values["controller"]?.ToString() == "ProductIncrement" ? "btn-primary" : "btn-light")">
-        Product increment
+        Increment
     </a>
 </div>

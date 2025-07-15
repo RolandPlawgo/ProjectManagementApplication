@@ -83,7 +83,7 @@
                         @if (User.IsInRole("Product Owner"))
                         {
                             <button class="btn btn-sm btn-primary mt-3" onclick="openModal('/UserStories/Create?epicId=@epic.Id','storyModal')">
-                                + Add Story
+                                Add Story
                             </button>
                         }
                     </div>
@@ -95,7 +95,7 @@
         {
             <div class="mt-4">
                 <button class="btn btn-sm btn-primary" onclick="openModal('@Url.Action("Create","Epics", new { projectId = Model.ProjectId })', 'epicModal')">
-                    + Add Epic
+                    Add Epic
                 </button>
             </div>
         }

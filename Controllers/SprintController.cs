@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
@@ -12,11 +13,13 @@ namespace ProjectManagementApplication.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IAuthorizationService _authorizationService;
 
-        public SprintController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public SprintController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService)
         {
             _context = context;
             _userManager = userManager;
+            _authorizationService = authorizationService;
         }
 
         public async Task<IActionResult> Index(int id)
@@ -26,6 +29,9 @@ namespace ProjectManagementApplication.Controllers
             {
                 return NotFound();
             }
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(project.Id));
+            if (!authResult.Succeeded) return Forbid();
 
 
             Sprint? activeSprint = await _context.Sprints.Where(s => s.ProjectId == id && s.Active == true && s.EndDate.HasValue && s.EndDate > DateTime.Now).FirstOrDefaultAsync();

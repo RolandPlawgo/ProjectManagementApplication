@@ -53,7 +53,7 @@
         toastEl.querySelector(".toast-time").textContent = meeting.time;
 
         toastEl.addEventListener("click", () => {
-            window.location.href = `/Meetings?projectId=${meeting.projectId}`;
+            window.location.href = `/Meetings`;
         });
 
         container.appendChild(toastEl);
