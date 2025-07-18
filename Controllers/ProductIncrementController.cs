@@ -30,7 +30,7 @@ namespace ProjectManagementApplication.Controllers
             if (!authResult.Succeeded) return Forbid();
 
             List<SprintSummaryViewModel> sprintsVm = new List<SprintSummaryViewModel>();
-            List<Sprint> sprints = await _context.Sprints.Where(s => s.ProjectId == id)
+            List<Sprint> sprints = await _context.Sprints.Where(s => s.ProjectId == id && s.Active == false && s.EndDate < DateTime.Now)
                 .Include(s => s.UserStories.Where(u => u.Status == Status.ProductIncrement))
                     .ThenInclude(u => u.Epic)
                 .OrderByDescending(s => s.Id)

@@ -157,5 +157,25 @@ namespace ProjectManagementApplication.Controllers
 
             return Json(new { success = true, initials });
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Scrum Master")]
+        public async Task<IActionResult> FinishSprintEarly(int id)
+        {
+            Sprint? sprint = await _context.Sprints.FindAsync(id);
+            if (sprint == null) return NotFound();
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(sprint.ProjectId));
+            if (!authResult.Succeeded) return Forbid();
+
+            //sprint.Active = false;
+            sprint.EndDate = DateTime.Now;
+
+            _context.Sprints.Update(sprint);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index", "SprintReview", new { id });
+        }
     }
 }
