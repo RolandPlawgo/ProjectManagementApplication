@@ -8,7 +8,10 @@
 }
 
 <h1 class="h4">@Model.ProjectName</h1>
-<p>Sprint @Model.SprintId – @Model.SprintGoal</p>
+@if (Model.SprintGoal != "")
+{
+    <p>@Model.SprintGoal</p>
+}
 
 <div class="container">
     <div class="row">

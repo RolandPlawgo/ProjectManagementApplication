@@ -10,7 +10,10 @@
 
 <h1 class="h4">@Model.ProjectName</h1>
 <p class="clearfix">
-    Sprint @Model.SprintId - @Model.SprintGoal
+    @if (Model.SprintGoal != "")
+    {
+        <span>Sprint @Model.SprintGoal</span>
+    }
     <span class="float-end">Sprint ends in <span class="text-danger">@Model.DaysToEndOfSprint days</span></span>
 </p>
 
