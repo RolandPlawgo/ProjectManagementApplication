@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using ProjectManagementApplication.Data.Entities;
+using ProjectManagementApplication.Services.Implementations;
+using ProjectManagementApplication.Services.Interfaces;
 
 namespace ProjectManagementApplication
 {
@@ -52,6 +54,18 @@ namespace ProjectManagementApplication
 
             builder.Services.AddScoped<IAuthorizationHandler, ProjectMemberHandler>();
 
+            builder.Services.AddScoped<IBacklogService, BacklogService>();
+            builder.Services.AddScoped<IProjectsService, ProjectsService>();
+            builder.Services.AddScoped<IEpicsService, EpicsService>();
+            builder.Services.AddScoped<IUserStoriesService, UserStoriesService>();
+            builder.Services.AddScoped<ISprintPlanningService, SprintPlanningService>();
+            builder.Services.AddScoped<ISprintService, SprintService>();
+            builder.Services.AddScoped<IScrumBoardService, ScrumBoardService>();
+            builder.Services.AddScoped<ISubtasksService, SubtasksService>();
+            builder.Services.AddScoped<ISprintReviewService, SprintReviewService>();
+            builder.Services.AddScoped<IProductIncrementService, ProductIncrementService>();
+            builder.Services.AddScoped<IMeetingsService, MeetingsService>();
+            builder.Services.AddScoped<IUsersService, UsersService>();
 
             builder.Services.AddJsEngineSwitcher(options =>
             {

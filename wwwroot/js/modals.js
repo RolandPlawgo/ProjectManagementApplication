@@ -77,28 +77,10 @@ function bindAjaxForm(form, modal) {
     }, { once: true });
 }
 
-//function bindDeleteButton(button, modal) {
-//    button.addEventListener('click', async () => {
-//        if (!confirm('Are you sure you want to delete this item?')) return;
 
-//        const url = button.getAttribute('data-delete-url');
-//        const res = await fetch(url, { method: 'POST' });
-//        if (res.ok) {
-//            const json = await res.json();
-//            if (json.success) {
-//                modal.hide();
-//                location.reload();
-//            } else {
-//                alert(json.error || 'Delete failed.');
-//            }
-//        } else {
-//            alert('Server error deleting item.');
-//        }
-//    }, { once: true });
-//}
 function bindDeleteButton(button, modal) {
     button.addEventListener('click', async () => {
-        if (!confirm('Are you sure you want to delete this project?')) return;
+        if (!confirm('Are you sure you want to delete this item?')) return;
 
         const url = button.getAttribute('data-delete-url');
 

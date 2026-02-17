@@ -1,44 +1,58 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Data;
-using ProjectManagementApplication.Data.Entities;
-using ProjectManagementApplication.Models.BacklogViewModels;
-using SQLitePCL;
+using ProjectManagementApplication.Dto.Requests.EpicsViewModels;
+using ProjectManagementApplication.Models.EpicViewModels;
+using ProjectManagementApplication.Services.Interfaces;
 
 namespace ProjectManagementApplication.Controllers
 {
     [Authorize(Roles = "Product Owner")]
     public class EpicsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IEpicsService _epicsService;
+        private readonly IAuthorizationService _authorizationService;
 
-        public EpicsController(ApplicationDbContext context)
+        public EpicsController(ApplicationDbContext context, IEpicsService epicsService, IAuthorizationService authorizationService)
         {
-            _context = context;
+            _epicsService = epicsService;
+            _authorizationService = authorizationService;
         }
 
         [HttpGet]
-        public IActionResult Create(int projectId)
+        public async Task<IActionResult> Create(int projectId)
         {
-            var vm = new EpicViewModel { ProjectId = projectId };
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(projectId));
+            if (!authResult.Succeeded) return Forbid();
+
+            var vm = new CreateEpicViewModel { ProjectId = projectId };
+
             return PartialView("_CreateEpic", vm);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(EpicViewModel model)
+        public async Task<IActionResult> Create(CreateEpicViewModel model)
         {
             if (!ModelState.IsValid)
                 return PartialView("_CreateEpic", model);
 
-            var epic = new Epic
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(model.ProjectId));
+            if (!authResult.Succeeded) return Forbid();
+
+            try
             {
-                Title = model.Title,
-                ProjectId = model.ProjectId
-            };
-            _context.Epics.Add(epic);
-            await _context.SaveChangesAsync();
+                await _epicsService.CreateEpicAsync(new CreateEpicRequest
+                {
+                    ProjectId = model.ProjectId,
+                    Title = model.Title
+                });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "An error occurred while creating the epic.");
+                return PartialView("_CreateEpic", model);
+            }
 
             return Json(new { success = true });
         }
@@ -46,10 +60,13 @@ namespace ProjectManagementApplication.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var epic = await _context.Epics.FindAsync(id);
+            var epic = await _epicsService.GetEpicForEditAsync(id);
             if (epic == null) return NotFound();
 
-            var vm = new EpicViewModel
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(epic.ProjectId));
+            if (!authResult.Succeeded) return Forbid();
+
+            var vm = new EditEpicViewModel
             {
                 Id = epic.Id,
                 ProjectId = epic.ProjectId,
@@ -60,17 +77,31 @@ namespace ProjectManagementApplication.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(EpicViewModel model)
+        public async Task<IActionResult> Edit(EditEpicViewModel model)
         {
             if (!ModelState.IsValid)
                 return PartialView("_EditEpic", model);
 
-            var epic = await _context.Epics.FindAsync(model.Id);
-            if (epic == null) return NotFound();
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(model.ProjectId));
+            if (!authResult.Succeeded) return Forbid();
 
-            epic.Title = model.Title;
-            _context.Epics.Update(epic);
-            await _context.SaveChangesAsync();
+            try
+            {
+                bool success = await _epicsService.EditEpicAsync(new EditEpicRequest
+                {
+                    Id = model.Id,
+                    Title = model.Title
+                });
+                if (success == false)
+                {
+                    return NotFound();
+                }
+            }
+            catch
+            {
+                ModelState.AddModelError("", "An error occurred while updating the epic.");
+                return PartialView("_EditEpic", model);
+            }
 
             return Json(new { success = true });
         }
@@ -79,15 +110,23 @@ namespace ProjectManagementApplication.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var epic = await _context.Epics
-                .Include(e => e.UserStories)
-                .FirstOrDefaultAsync(e => e.Id == id);
+            int? projectId = await _epicsService.GetProjectIdForEpicAsync(id);
+            if (projectId == null) return Json(new { success = false });
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
+            if (!authResult.Succeeded) return Forbid();
 
-            if (epic == null) return Json(new { success = false });
-
-            _context.UserStories.RemoveRange(epic.UserStories);
-            _context.Epics.Remove(epic);
-            await _context.SaveChangesAsync();
+            try
+            {
+                bool success = await _epicsService.DeleteEpicAsync(id);
+                if (success == false)
+                {
+                    return Json(new { success = false });
+                }
+            }
+            catch
+            {
+                return Json(new { success = false });
+            }
 
             return Json(new { success = true });
         }

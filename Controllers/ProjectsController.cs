@@ -1,59 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
 using ProjectManagementApplication.Data;
-using ProjectManagementApplication.Data.Entities;
+using ProjectManagementApplication.Dto.Read.ProjectsDtos;
+using ProjectManagementApplication.Dto.Requests.ProjectsRequests;
 using ProjectManagementApplication.Models.ProjectsViewModels;
+using ProjectManagementApplication.Services.Interfaces;
 
 namespace ProjectManagementApplication.Controllers
 {
     public class ProjectsController : Controller
     {
-        private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuthorizationService _authorizationService;
+        private readonly IProjectsService _projectsService;
 
-        public ProjectsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService)
+        public ProjectsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService, IProjectsService projectsService)
         {
-            _context = context;
             _userManager = userManager;
             _authorizationService = authorizationService;
+            _projectsService = projectsService;
         }
 
         // GET: Projects
         public async Task<IActionResult> Index()
         {
-            List<Project> projects = new List<Project>();
-				var currentUser = await _userManager.GetUserAsync(User);
-				var userId = currentUser?.Id;
+            string? userId = _userManager.GetUserId(User);
+            if (userId == null) return Forbid();
 
-				projects = await _context.Projects
-					.Include(p => p.Users)
-					.Where(p => p.Users.Any(u => u.Id == userId))
-					.ToListAsync();
-
-            var cards = new List<ProjectCardViewModel>();
-            foreach (var p in projects)
-            {
-                var model = new ProjectCardViewModel
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                };
-                foreach (var user in p.Users)
-                {
-                    model.UserInitials.Add(Helpers.ApplicationUserHelper.UserInitials(user));
-                }
-                cards.Add(model);
-            }
+            var cards = await _projectsService.GetProjectsForUserAsync(userId);
+            if (cards == null) return NotFound();
 
             return View(cards);
         }
@@ -61,41 +40,20 @@ namespace ProjectManagementApplication.Controllers
         // GET: Projects/Details/5
         public async Task<IActionResult> Details(int id)
         {
-            var project = await _context.Projects
-                .Include(p => p.Users)
-                .FirstOrDefaultAsync(p => p.Id == id);
-            if (project == null) return NotFound();
-
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
             if (!authResult.Succeeded) return Forbid();
 
-            var model = new ProjectDetailsViewModel
-            {
-                Id = project.Id,
-                Name = project.Name,
-                Description = project.Description,
-                SprintDuration = project.SprintDuration
-            };
+            ProjectDetailsDto? projectDetailsDto = await _projectsService.GetProjectDetailsAsync(id);
+            if (projectDetailsDto == null) return NotFound();
 
-            foreach (var user in project.Users)
-            {
-				var role = (await _userManager.GetRolesAsync(user)).DefaultIfEmpty("Developer").FirstOrDefault();
-				model.UsersWithRoles.Add(new UserWithRolesViewModel
-                {
-                    UserName = user.UserName ?? "",
-                    Role = role ?? ""
-                });
-            }
-            if (model == null) return NotFound();
-
-            return PartialView("_Details", model);
+            return PartialView("_Details", projectDetailsDto);
         }
 
         // GET: Projects/Create
         [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Create()
         {
-            var model = new ProjectEditViewModel { SprintDuration = 2 };
+            var model = new CreateProjectViewModel { SprintDuration = 2 };
             await PopulateSelections(model);
             return PartialView("_Create", model);
         }
@@ -103,7 +61,7 @@ namespace ProjectManagementApplication.Controllers
         // POST: Projects/Create
         [Authorize(Roles = "Scrum Master")]
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ProjectEditViewModel model)
+        public async Task<IActionResult> Create(CreateProjectViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -120,22 +78,23 @@ namespace ProjectManagementApplication.Controllers
                 return PartialView("_Create", model);
             }
 
-            var project = new Project
+            var createProjectRequest = new CreateProjectRequest
             {
                 Name = model.Name,
                 Description = model.Description,
-                SprintDuration = model.SprintDuration
+                SprintDuration = model.SprintDuration,
+                UserIds = model.UserIds
             };
-
-            foreach (var userId in model.UserIds)
+            try
             {
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user != null)
-                    project.Users.Add(user);
+                await _projectsService.CreateProjectAsync(createProjectRequest);
             }
-
-            _context.Projects.Add(project);
-            await _context.SaveChangesAsync();
+            catch
+            {
+                ModelState.AddModelError(key: "", errorMessage: "An error occurred while creating the project. Please try again.");
+                await PopulateSelections(model);
+                return PartialView("_Create", model);
+            }
 
             return Json(new { success = true });
         }
@@ -144,22 +103,22 @@ namespace ProjectManagementApplication.Controllers
         [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Edit(int id)
         {
-            var project = await _context.Projects
-                .Include(p => p.Users)
-                .FirstOrDefaultAsync(p => p.Id == id);
-            if (project == null) return NotFound();
-
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
             if (!authResult.Succeeded) return Forbid();
 
-            var model = new ProjectEditViewModel
+            var projectDto = await _projectsService.GetProjectDetailsAsync(id);
+            if (projectDto == null) return NotFound();
+
+            var model = new EditProjectViewModel
             {
-                Id = project.Id,
-                Name = project.Name,
-                Description = project.Description,
-                SprintDuration = project.SprintDuration,
-                UserIds = project.Users.Select(u => u.Id).ToList()
+                Id = projectDto.Id,
+                Name = projectDto.Name,
+                Description = projectDto.Description,
+                SprintDuration = projectDto.SprintDuration,
+                UserIds = projectDto.UsersWithRoles.Select(u => u.Id).ToList()
             };
+
+
             await PopulateSelections(model);
 
             return PartialView("_Edit", model);
@@ -168,7 +127,7 @@ namespace ProjectManagementApplication.Controllers
         // POST: Projects/Edit/5
         [Authorize(Roles = "Scrum Master")]
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, ProjectEditViewModel model)
+        public async Task<IActionResult> Edit(int id, EditProjectViewModel model)
         {
             if (id != model.Id || !ModelState.IsValid)
             {
@@ -185,27 +144,28 @@ namespace ProjectManagementApplication.Controllers
                 return PartialView("_Edit", model);
             }
 
-            var project = await _context.Projects
-                .Include(p => p.Users)
-                .FirstOrDefaultAsync(p => p.Id == model.Id);
-            if (project == null) return Json(new { success = false, error = "Project not found." });
-
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
             if (!authResult.Succeeded) return Json(new { success = false, error = "You’re not allowed to edit that project." });
 
-            project.Name = model.Name;
-            project.Description = model.Description;
-            project.SprintDuration = model.SprintDuration;
-
-            project.Users.Clear();
-            foreach (var userId in model.UserIds)
+            var editProjectRequest = new EditProjectRequest
             {
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user != null)
-                    project.Users.Add(user);
+                Id = model.Id,
+                Name = model.Name,
+                Description = model.Description,
+                SprintDuration = model.SprintDuration,
+                UserIds = model.UserIds            };
+            try
+            {
+                bool result = await _projectsService.UpdateProjectAsync(editProjectRequest);
+                if (result == false)
+                {
+                    return Json(new { success = false, error = "Project not found." });
+                }
             }
-
-            await _context.SaveChangesAsync();
+            catch
+            {
+                return Json(new { success = false, error = "An error occurred while updating the project. Please try again." });
+            }
 
             return Json(new { success = true });
         }
@@ -215,19 +175,40 @@ namespace ProjectManagementApplication.Controllers
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
-            var project = await _context.Projects.FindAsync(id);
-            if (project == null) return Json(new { success = false, error = "Project not found." });
-
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
             if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
 
-            _context.Projects.Remove(project);
-            await _context.SaveChangesAsync();
+            var result = await _projectsService.DeleteProjectAsync(id);
+            if (result == false) return Json(new { success = false, error = "Project not found." });
 
             return Json(new { success = true });
         }
 
-        private async Task PopulateSelections(ProjectEditViewModel vm)
+        private async Task PopulateSelections(EditProjectViewModel vm)
+        {
+            vm.SprintDurations = new List<SelectListItem>
+            {
+                new SelectListItem("1 week", "1"),
+                new SelectListItem("2 weeks", "2"),
+                new SelectListItem("4 weeks", "4")
+            };
+
+            var users = await _userManager.Users.ToListAsync();
+            vm.AllUsers = users.Select(u =>
+            {
+                var roles = _userManager.GetRolesAsync(u).Result;
+                var label = string.IsNullOrEmpty(u.UserName) ? "" : u.UserName;
+                if (roles.Any())
+                    label += $" ({string.Join(", ", roles)})";
+                return new SelectListItem
+                {
+                    Value = u.Id,
+                    Text = label,
+                    Selected = vm.UserIds.Contains(u.Id)
+                };
+            }).ToList();
+        }
+        private async Task PopulateSelections(CreateProjectViewModel vm)
         {
             vm.SprintDurations = new List<SelectListItem>
             {

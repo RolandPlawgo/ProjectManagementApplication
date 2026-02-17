@@ -1,66 +1,46 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
-using ProjectManagementApplication.Data;
-using ProjectManagementApplication.Data.Entities;
-using ProjectManagementApplication.Models.SprintViewModels;
+using ProjectManagementApplication.Services.Interfaces;
 
 namespace ProjectManagementApplication.Controllers
 {
     public class SprintController : Controller
     {
-        private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuthorizationService _authorizationService;
+        private readonly ISprintService _sprintService;
 
-        public SprintController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService)
+        public SprintController(UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService, ISprintService sprintService)
         {
-            _context = context;
             _userManager = userManager;
             _authorizationService = authorizationService;
+            _sprintService = sprintService;
         }
 
         public async Task<IActionResult> Index(int id)
         {
-            Project? project = await _context.Projects.FindAsync(id);
-            if (project == null)
-            {
-                return NotFound();
-            }
-
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(project.Id));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
             if (!authResult.Succeeded) return Forbid();
 
 
-            Sprint? activeSprint = await _context.Sprints.Where(s => s.ProjectId == id && s.Active == true && s.EndDate.HasValue && s.EndDate > DateTime.Now).FirstOrDefaultAsync();
-            if (activeSprint != null)
+            int? activeSprintId = await _sprintService.GetActiveSprintId(id);
+            if (activeSprintId != null)
             {
-                return RedirectToAction("Index", "ScrumBoard", new { id = activeSprint.Id });
+                return RedirectToAction("Index", "ScrumBoard", new { id = activeSprintId });
             }
 
-            Sprint? completedSprint = await _context.Sprints.Where(s => s.ProjectId == id && s.Active == true && s.EndDate.HasValue && s.EndDate <= DateTime.Now).FirstOrDefaultAsync();
-            if (completedSprint != null)
+            int? completedSprintd = await _sprintService.GetCompletedSprintId(id);
+            if (completedSprintd != null)
             {
-                return RedirectToAction("Index", "SprintReview", new { id = completedSprint.Id });
+                return RedirectToAction("Index", "SprintReview", new { id = completedSprintd });
             }
 
-            Sprint? sprint = await _context.Sprints.Where(s => s.ProjectId == id && s.Active == false && s.EndDate == null).FirstOrDefaultAsync();
-            if (sprint == null)
-            {
-                Sprint newSprint = new Sprint()
-                {
-                    Project = project,
-                    Active = false,
-                    SprintGoal = ""
-                };
-                var createdSprint = await _context.Sprints.AddAsync(newSprint);
-                await _context.SaveChangesAsync();
-                sprint = createdSprint.Entity;
-            }
+            int? sprintId = await _sprintService.GetOrCreateNewSprintAsync(id);
+            if (sprintId == null) return NotFound();
 
-            return RedirectToAction("Index", "SprintPlanning", new { id = sprint.Id} );
+            return RedirectToAction("Index", "SprintPlanning", new { id = (int)sprintId} );
         }
     }
 }
