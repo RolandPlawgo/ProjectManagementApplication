@@ -6,7 +6,6 @@ using ProjectManagementApplication.Authentication;
 using ProjectManagementApplication.Dto.Read.SubtasksDtos;
 using ProjectManagementApplication.Dto.Requests.SubtasksRequests;
 using ProjectManagementApplication.Models.Subtasks;
-using ProjectManagementApplication.Models.SubtasksViewModels;
 using ProjectManagementApplication.Services.Interfaces;
 
 namespace ProjectManagementApplication.Controllers
