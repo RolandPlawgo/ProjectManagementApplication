@@ -55,7 +55,12 @@ namespace ProjectManagementApplication.Services.Implementations
                     Id = st.Id,
                     Title = st.Title,
                     UserStoryId = st.UserStoryId
-                }).ToList()
+                }).Union(backlogStories.SelectMany(us => us.Subtasks).Select(st => new SubtaskSummaryDto
+                {
+                    Id = st.Id,
+                    Title = st.Title,
+                    UserStoryId = st.UserStoryId
+                })).ToList()
             };
 
             return dto;
