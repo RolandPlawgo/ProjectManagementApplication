@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Scrum Master")]
         public IActionResult Create(int projectId)
         {
             var model = new CreateMeetingViewModel
@@ -52,7 +54,8 @@ namespace ProjectManagementApplication.Controllers
             return PartialView("_CreateMeeting", model);
         }
 
-        [HttpPost]
+        [HttpPost, ValidateAntiForgeryToken]
+        [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Create(CreateMeetingViewModel model)
         {
             model.TypeOfMeetingOptions = Enum.GetValues(typeof(TypeOfMeeting))
@@ -82,6 +85,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Edit(int id)
         {
             var dto = await _meetingsService.GetForEditAsync(id);
@@ -107,7 +111,8 @@ namespace ProjectManagementApplication.Controllers
             return PartialView("_EditMeeting", model);
         }
 
-        [HttpPost]
+        [HttpPost, ValidateAntiForgeryToken]
+        [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Edit(EditMeetingViewModel model)
         {
             model.TypeOfMeetingOptions = Enum.GetValues(typeof(TypeOfMeeting))
@@ -137,7 +142,8 @@ namespace ProjectManagementApplication.Controllers
             return Json(new { success = true });
         }
 
-        [HttpPost]
+        [HttpPost, ValidateAntiForgeryToken]
+        [Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> Delete(int id)
         {
             try

@@ -46,7 +46,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         // POST: /Subtasks/Create
-        [HttpPost("Create")]
+        [HttpPost("Create"), ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateSubtaskViewModel model)
         {
             if (!ModelState.IsValid)
@@ -104,7 +104,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         // POST: /Subtasks/Edit/5
-        [HttpPost("Edit/{id}")]
+        [HttpPost("Edit/{id}"), ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(EditSubtaskViewModel vm)
         {
             if (!ModelState.IsValid)
@@ -132,7 +132,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         // POST: /Subtasks/Delete/5
-        [HttpPost("Delete/{id}")]
+        [HttpPost("Delete/{id}"), ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             int? sprintId = await _sprintService.GetSprintIdForSubtaskAsync(id);
