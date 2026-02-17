@@ -2,12 +2,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using ProjectManagementApplication.Authentication;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
+using ProjectManagementApplication.Dto.Read.MeetingsDtos;
+using ProjectManagementApplication.Dto.Requests.MeetingRequests;
 using ProjectManagementApplication.Models.MeetingsViewModels;
-using SQLitePCL;
+using ProjectManagementApplication.Services.Interfaces;
 
 namespace ProjectManagementApplication.Controllers
 {
@@ -15,60 +16,26 @@ namespace ProjectManagementApplication.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
-        public MeetingsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        private readonly IMeetingsService _meetingsService;
+        public MeetingsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IMeetingsService meetingsService)
         {
             _context = context;
             _userManager = userManager;
+            _meetingsService = meetingsService;
         }
         public async Task<IActionResult> Index()
         {
             ApplicationUser? user = await _userManager.GetUserAsync(User);
             if (user == null) return NotFound();
-            List<Project> projects = await _context.Projects.Where(p => p.Users.Contains(user))
-                .Include(p => p.Meetings
-                    .Where(m => m.Time > DateTime.Now)
-                    .OrderBy(m => m.Time))
-                .OrderByDescending(p => p.Id)
-                .ToListAsync();
-            List<ProjectSummaryViewModel> projectsVm = new List<ProjectSummaryViewModel>();
+            
+            MeetingsDto dto = await _meetingsService.GetMeetingsAsync(user);
 
-            foreach (var project in projects)
-            {
-                List<MeetingSummaryViewModel> meetingsVm = new List<MeetingSummaryViewModel>();
-                foreach (Meeting meeting in project.Meetings)
-                {
-                    meetingsVm.Add(new MeetingSummaryViewModel()
-                    {
-                        Id = meeting.Id,
-                        Name = meeting.Name,
-                        Description = meeting.Description,
-                        Time = meeting.Time.ToString("dd.MM.yyyy HH:mm"),
-                        TypeOfMeeting = meeting.TypeOfMeeting.ToString()
-                    });
-                }
-
-                projectsVm.Add(new ProjectSummaryViewModel()
-                {
-                    Id = project.Id,
-                    Name = project.Name,
-                    Meetings = meetingsVm
-                });
-            }
-
-            MeetingsViewModel model = new MeetingsViewModel()
-            {
-                Projects = projectsVm
-            };
-
-            return View(model);
+            return View(dto);
         }
 
         [HttpGet]
-        public async Task<IActionResult> Create(int projectId)
+        public IActionResult Create(int projectId)
         {
-            Project? project = await _context.Projects.FindAsync(projectId);
-            if (project == null) return NotFound();
-
             var model = new CreateMeetingViewModel
             {
                 ProjectId = projectId,
@@ -100,15 +67,16 @@ namespace ProjectManagementApplication.Controllers
             if (!ModelState.IsValid)
                 return PartialView("_CreateMeeting", model);
 
-            _context.Meetings.Add(new Meeting()
+            var createMeetingRequest = new CreateMeetingRequest()
             {
                 ProjectId = model.ProjectId,
                 Name = model.Name,
                 Description = model.Description,
                 Time = model.Time,
                 TypeOfMeeting = model.TypeOfMeeting
-            });
-            await _context.SaveChangesAsync();
+            };
+
+            await _meetingsService.CreateMeetingAsync(createMeetingRequest);
 
             return Json(new { success = true });
         }
@@ -116,17 +84,17 @@ namespace ProjectManagementApplication.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            Meeting? meeting = await _context.Meetings.FindAsync(id);
-            if (meeting == null) return NotFound();
+            var dto = await _meetingsService.GetForEditAsync(id);
+            if (dto == null) return NotFound();
 
-            var model = new CreateMeetingViewModel
+            var model = new EditMeetingViewModel
             {
-                Id = meeting.Id,
-                ProjectId = meeting.ProjectId,
-                Time = meeting.Time,
-                Name = meeting.Name,
-                Description = meeting.Description,
-                TypeOfMeeting = meeting.TypeOfMeeting,
+                Id = dto.Id,
+                ProjectId = dto.ProjectId,
+                Time = dto.Time,
+                Name = dto.Name,
+                Description = dto.Description,
+                TypeOfMeeting = dto.TypeOfMeeting,
                 TypeOfMeetingOptions = Enum.GetValues(typeof(TypeOfMeeting))
                     .Cast<TypeOfMeeting>()
                     .Select(e => new SelectListItem
@@ -140,7 +108,7 @@ namespace ProjectManagementApplication.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Edit(CreateMeetingViewModel model)
+        public async Task<IActionResult> Edit(EditMeetingViewModel model)
         {
             model.TypeOfMeetingOptions = Enum.GetValues(typeof(TypeOfMeeting))
                 .Cast<TypeOfMeeting>()
@@ -154,7 +122,8 @@ namespace ProjectManagementApplication.Controllers
             if (!ModelState.IsValid)
                 return PartialView("_EditMeeting", model);
 
-            _context.Meetings.Update(new Meeting()
+            
+            var request = new EditMeetingRequest()
             {
                 Id = model.Id,
                 ProjectId = model.ProjectId,
@@ -162,8 +131,8 @@ namespace ProjectManagementApplication.Controllers
                 Description = model.Description,
                 Time = model.Time,
                 TypeOfMeeting = model.TypeOfMeeting
-            });
-            await _context.SaveChangesAsync();
+            };
+            await _meetingsService.EditMeetingAsync(request);
 
             return Json(new { success = true });
         }
@@ -173,14 +142,8 @@ namespace ProjectManagementApplication.Controllers
         {
             try
             {
-                Meeting? meeting = await _context.Meetings.FindAsync(id);
-                if (meeting == null)
-                {
-                    return NotFound();
-                }
-                _context.Meetings.Remove(meeting);
-                _context.SaveChanges();
-                return Json(new { success = true });
+                var success = await _meetingsService.DeleteMeetingAsync(id);
+                return Json(new { success = success });
             }
             catch
             {

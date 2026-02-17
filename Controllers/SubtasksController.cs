@@ -1,45 +1,45 @@
 ﻿using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
-using ProjectManagementApplication.Data;
-using ProjectManagementApplication.Data.Entities;
-using ProjectManagementApplication.Helpers;
+using ProjectManagementApplication.Dto.Read.SubtasksDtos;
+using ProjectManagementApplication.Dto.Requests.SubtasksRequests;
 using ProjectManagementApplication.Models.Subtasks;
 using ProjectManagementApplication.Models.SubtasksViewModels;
-using System.Threading.Tasks;
+using ProjectManagementApplication.Services.Interfaces;
 
 namespace ProjectManagementApplication.Controllers
 {
     public class SubtasksController : Controller
     {
-        private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuthorizationService _authorizationService;
+        private readonly ISprintService _sprintService;
+        private readonly ISubtasksService _subtasksService;
 
         public SubtasksController(
-            ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            IAuthorizationService authorizationService)
+            IAuthorizationService authorizationService,
+            ISprintService sprintService,
+            ISubtasksService subtasksService)
         {
-            _context = context;
             _userManager = userManager;
             _authorizationService = authorizationService;
+            _sprintService = sprintService;
+            _subtasksService = subtasksService;
         }
 
         // GET: /Subtasks/Create?storyId=5
         [HttpGet("Create")]
         public async Task<IActionResult> Create(int storyId)
         {
-            var userStory = await _context.UserStories
-                .Include(us => us.Sprint)
-                .FirstOrDefaultAsync(us => us.Id == storyId);
-            if (userStory == null) return NotFound();
+            int? sprintId = await _sprintService.GetSprintIdForUserStoryAsync(storyId);
+            if (sprintId == null) return NotFound();
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync((int)sprintId);
+            if (projectId == null) return NotFound();
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(userStory.Sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
             var vm = new CreateSubtaskViewModel { UserStoryId = storyId };
@@ -53,23 +53,29 @@ namespace ProjectManagementApplication.Controllers
             if (!ModelState.IsValid)
                 return PartialView("_CreateSubtask", model);
 
-            var userStory = await _context.UserStories
-                .Include(us => us.Sprint)
-                .FirstOrDefaultAsync(us => us.Id == model.UserStoryId);
-            if (userStory == null) return Json(new { success = false, error = "User story not found." });
+            var sprintId = await _sprintService.GetSprintIdForUserStoryAsync(model.UserStoryId);
+            if (sprintId == null) return Json(new { success = false, error = "User story not found." });
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync((int)sprintId);
+            if (projectId == null) return Json(new { success = false, error = "Project not found." });
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(userStory.Sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
 
-            var subtask = new Subtask
+            var subtask = new CreateSubtaskRequest
             {
                 Title = model.Title,
                 Content = model.Content ?? "",
-                UserStoryId = model.UserStoryId,
-                Done = false
+                UserStoryId = model.UserStoryId
             };
-            _context.Subtasks.Add(subtask);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _subtasksService.CreateSubtaskAsync(subtask);
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false, error = "An error occured while creating the task." });
+            }
+
             return Json(new { success = true });
         }
 
@@ -77,21 +83,23 @@ namespace ProjectManagementApplication.Controllers
         [HttpGet("Edit/{id}")]
         public async Task<IActionResult> Edit(int id)
         {
-            var subtask = await _context.Subtasks
-                .Include(s => s.UserStory)
-                    .ThenInclude(us => us.Sprint)
-                .FirstOrDefaultAsync(s => s.Id == id);
-            if (subtask == null) return NotFound();
+            int? sprintId = await _sprintService.GetSprintIdForSubtaskAsync(id);
+            if (sprintId == null) return NotFound();
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync((int)sprintId);
+            if (projectId == null) return NotFound();
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(subtask.UserStory.Sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
+
+            EditSubtaskDto? dto = await _subtasksService.GetForEditAsync(id);
+            if (dto == null) return NotFound();
 
             var vm = new EditSubtaskViewModel
             {
-                Id = subtask.Id,
-                Title = subtask.Title,
-                Content = subtask.Content,
-                UserStoryId = subtask.UserStoryId
+                Id = dto.Id,
+                Title = dto.Title,
+                Content = dto.Content,
+                UserStoryId = dto.UserStoryId
             };
             return PartialView("_EditSubtask", vm);
         }
@@ -103,20 +111,24 @@ namespace ProjectManagementApplication.Controllers
             if (!ModelState.IsValid)
                 return PartialView("_EditSubtask", vm);
 
-            var subtask = await _context.Subtasks
-                .Include(s => s.UserStory)
-                    .ThenInclude(us => us.Sprint)
-                        .ThenInclude(sp => sp.Project)
-                            .ThenInclude(p => p.Users)
-                .FirstOrDefaultAsync(s => s.Id == vm.Id);
-            if (subtask == null) return Json(new { success = false, error = "User story not found." });
+            int? sprintId = await _sprintService.GetSprintIdForSubtaskAsync(vm.Id); 
+            if (sprintId == null) return Json(new { success = false, error = "User story not found." });
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync((int)sprintId);
+            if (projectId == null) return Json(new { success = false, error = "Project not found." });
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(subtask.UserStory.Sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
 
-            subtask.Title = vm.Title;
-            subtask.Content = vm.Content ?? "";
-            await _context.SaveChangesAsync();
+            var request = new EditSubtaskRequest()
+            {
+                Id = vm.Id,
+                Title = vm.Title,
+                Content = vm.Content,
+                UserStoryId = vm.UserStoryId
+            };
+            bool success = await _subtasksService.EditSubtaskAsync(request);
+            if (!success) return NotFound();
+
             return Json(new { success = true });
         }
 
@@ -124,17 +136,17 @@ namespace ProjectManagementApplication.Controllers
         [HttpPost("Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var subtask = await _context.Subtasks
-                .Include(s => s.UserStory)
-                    .ThenInclude(us => us.Sprint)
-                .FirstOrDefaultAsync(s => s.Id == id);
-            if (subtask == null) return Json(new { success = false, error = "User story not found." });
+            int? sprintId = await _sprintService.GetSprintIdForSubtaskAsync(id);
+            if (sprintId == null) return Json(new { success = false, error = "User story not found." });
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync((int)sprintId);
+            if (projectId == null) return Json(new { success = false, error = "Project not found." });
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(subtask.UserStory.Sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
 
-            _context.Subtasks.Remove(subtask);
-            await _context.SaveChangesAsync();
+            bool success = await  _subtasksService.DeleteSubtaskAsync(id);
+            if (!success) return NotFound();
+
             return Json(new { success = true });
         }
 
@@ -142,70 +154,48 @@ namespace ProjectManagementApplication.Controllers
         [HttpGet("Details/{id}")]
         public async Task<IActionResult> Details(int id)
         {
-            var subtask = await _context.Subtasks
-                .Include(s => s.UserStory)
-                    .ThenInclude(us => us.Sprint)
-                .FirstOrDefaultAsync(s => s.Id == id);
-            if (subtask == null) return NotFound();
+            int? sprintId = await _sprintService.GetSprintIdForSubtaskAsync(id);
+            if (sprintId == null) return NotFound();
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync((int)sprintId);
+            if (projectId == null) return NotFound();
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(subtask.UserStory.Sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
-            var model = await BuildDetailsViewModel(id);
-            return PartialView("_SubtaskDetails", model!);
+            SubtaskDetailsDto? dto = await _subtasksService.GetDetailsAsync(id);
+            if (dto == null) return NotFound();
+
+            return PartialView("_SubtaskDetails", dto);
         }
 
         // POST: /Subtasks/AddComment
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> AddComment(int taskId, string content)
         {
-            var subtask = await _context.Subtasks
-                .Include(s => s.UserStory)
-                    .ThenInclude(u => u.Sprint)
-                .FirstOrDefaultAsync(s => s.Id == taskId);
-            if (subtask == null) return NotFound();
+            int? sprintId = await _sprintService.GetSprintIdForSubtaskAsync(taskId);
+            if (sprintId == null) return NotFound();
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync((int)sprintId);
+            if (projectId == null) return NotFound();
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(subtask.UserStory.Sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
             var user = await _userManager.GetUserAsync(User);
-            var comment = new Comment
+            if (user == null) return Forbid();
+
+            var comment = new AddCommentRequest
             {
-                TaskId = taskId,
+                SubtaskId = taskId,
                 Content = content,
-                Author = user!,
-                CreatedAt = DateTime.Now
+                Author = user
             };
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
+            
+            await _subtasksService.AddCommentAsync(comment);
 
-            var model = await BuildDetailsViewModel(taskId);
-            return PartialView("_SubtaskDetails", model!);
-        }
+            SubtaskDetailsDto? dto = await _subtasksService.GetDetailsAsync(taskId);
+            if (dto == null) return NotFound();
 
-        private async Task<SubtaskDetailsViewModel?> BuildDetailsViewModel(int subtaskId)
-        {
-            var subtask = await _context.Subtasks
-                .Include(s => s.Comments)
-                .ThenInclude(c => c.Author)
-                .FirstOrDefaultAsync(s => s.Id == subtaskId);
-            if (subtask == null) return null;
-
-            var model = new SubtaskDetailsViewModel
-            {
-                Id = subtask.Id,
-                Title = subtask.Title,
-                Content = subtask.Content,
-                Comments = subtask.Comments
-                       .OrderBy(c => c.CreatedAt)
-                    .Select(c => new CommentViewModel
-                    {
-                        Content = c.Content,
-                        AuthorInitials = ApplicationUserHelper.UserInitials(c.Author),
-                        CreatedAt = c.CreatedAt.ToString("dd.MM.yyyy HH:mm")
-                    }).ToList()
-            };
-            return model;
+            return PartialView("_SubtaskDetails", dto);
         }
     }
 }

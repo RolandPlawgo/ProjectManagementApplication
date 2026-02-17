@@ -1,5 +1,5 @@
-﻿@using Microsoft.AspNetCore.Identity;
-@model List<ProjectManagementApplication.Models.UsersViewModels.UsersViewModel>;
+﻿@using ProjectManagementApplication.Dto.Read.UsersDtos
+@model List<UsersDto>;
 @{
 	ViewData["Title"] = "Users";
 	int currentPage = ViewBag.CurrentPage as int? ?? 1;

@@ -1,87 +1,50 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
-using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
-using ProjectManagementApplication.Models.SprintViewModels;
-using System.Threading.Tasks;
-using System.Linq;
+using ProjectManagementApplication.Services.Interfaces;
+using ProjectManagementApplication.Dto.Requests.SprintPlanningRequests;
 
 namespace ProjectManagementApplication.Controllers
 {
     public class SprintPlanningController : Controller
     {
-        private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuthorizationService _authorizationService;
+        private readonly ISprintPlanningService _sprintPlanningService;
+        private readonly ISprintService _sprintService;
 
         public SprintPlanningController(
-            ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            IAuthorizationService authorizationService)
+            IAuthorizationService authorizationService,
+            ISprintPlanningService sprintPlanningService,
+            ISprintService sprintService)
         {
-            _context = context;
             _userManager = userManager;
             _authorizationService = authorizationService;
+            _sprintPlanningService = sprintPlanningService;
+            _sprintService = sprintService;
         }
 
         public async Task<IActionResult> Index(int id)
         {
-            var sprint = await _context.Sprints
-            .Include(s => s.Project)
-            .FirstOrDefaultAsync(s => s.Id == id);
-            if (sprint == null) return NotFound();
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync(id);
+            if (projectId == null) return NotFound();
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded)
                 return Forbid();
 
-            if (sprint.Active)
+            bool? isSprintActive = await _sprintService.IsSprintActiveAsync(id);
+            if (isSprintActive == null) return NotFound();
+            if ((bool)isSprintActive)
             {
-                return RedirectToAction("Index", "Sprint", new { id = sprint.ProjectId });
+                return RedirectToAction("Index", "Sprint", new { id = (int)projectId });
             }
 
-            var backlogStories = await _context.UserStories
-                .Where(u => u.Status == Status.Backlog)
-                .Include(u => u.Epic).Include(u => u.Subtasks)
-                .ToListAsync();
-            var sprintStories = await _context.UserStories
-                .Where(u => u.Status == Status.Sprint && u.SprintId == sprint.Id)
-                .Include(u => u.Epic).Include(u => u.Subtasks)
-                .ToListAsync();
-
-            var model = new SprintPlanningViewModel
-            {
-                ProjectId = sprint.ProjectId,
-                ProjectName = sprint.Project.Name,
-                SprintId = sprint.Id,
-                SprintGoal = sprint.SprintGoal,
-                BacklogUserStories = backlogStories
-                                          .Select(us => new UserStorySummaryViewModel
-                                          {
-                                              Id = us.Id,
-                                              Title = us.Title,
-                                              EpicTitle = us.Epic.Title
-                                          }).ToList(),
-                SprintUserStories = sprintStories
-                                          .Select(us => new UserStorySummaryViewModel
-                                          {
-                                              Id = us.Id,
-                                              Title = us.Title,
-                                              EpicTitle = us.Epic.Title
-                                          }).ToList(),
-                Subtasks = backlogStories.Concat(sprintStories)
-                                          .SelectMany(us => us.Subtasks
-                                            .Select(st => new SubtaskSummaryViewModel
-                                            {
-                                                Id = st.Id,
-                                                UserStoryId = us.Id,
-                                                Title = st.Title
-                                            }))
-                                          .ToList()
-            };
+            var model = await _sprintPlanningService.GetSprintPlanningAsync(id);
+            if (model == null) return NotFound();
 
             return View(model);
         }
@@ -89,83 +52,57 @@ namespace ProjectManagementApplication.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<JsonResult> MoveUserStory(int id, int sprintId, string targetList)
         {
-            var userStory = await _context.UserStories.Where(u => u.Id == id)
-                .Include(u => u.Epic)
-                .FirstOrDefaultAsync();
-            if (userStory == null) return Json(new { success = false, error = "User story not found." });
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync(sprintId);
+            if (projectId == null) return Json(new { success = false });
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(userStory.Epic.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
 
-            if (targetList == "Sprint" && userStory.Status == Status.Backlog)
+
+            Status? targetStatus = null;
+            if (targetList == "Sprint") targetStatus = Status.Sprint;
+            else if (targetList == "Backlog") targetStatus = Status.Backlog;
+            if (targetStatus == null) return Json(new { success = false });
+
+            bool success = await _sprintPlanningService.MoveUserStory(new MoveUserStoryRequest
             {
-                userStory.Status = Status.Sprint;
-                userStory.SprintId = sprintId;
-            }
-            else if (targetList == "Backlog" && userStory.Status == Status.Sprint)
-            {
-                userStory.Status = Status.Backlog;
-                userStory.SprintId = null;
-            }
-
-            _context.Update(userStory);
-            await _context.SaveChangesAsync();
-            return Json(new { success = true });
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> AddSubtask(int storyId, int sprintId, string title)
-        {
-            var userStory = await _context.UserStories.FirstOrDefaultAsync(u => u.Id == storyId);
-            if (userStory == null) return NotFound();
-
-            var sprint = await _context.Sprints.FirstOrDefaultAsync(s => s.Id == sprintId);
-            if (sprint == null) return NotFound();
-
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(sprint.ProjectId));
-            if (!authResult.Succeeded) return Forbid();
-
-            _context.Subtasks.Add(new Subtask
-            {
-                UserStoryId = storyId,
-                Title = title,
-                Content = ""
+                UserStoryId = id,
+                TargetStatus = (Status)targetStatus,
+                SprintId = sprintId
             });
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index), new { id = sprintId });
+            if (!success) return Json(new { success = false });
+
+            return Json(new { success = true });
         }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> SetSprintGoal(int sprintId, string sprintGoal)
         {
-            var sprint = await _context.Sprints
-                .FirstOrDefaultAsync(s => s.Id == sprintId);
-            if (sprint == null) return NotFound();
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync(sprintId);
+            if (projectId == null) return NotFound();
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
-            sprint.SprintGoal = sprintGoal;
-            await _context.SaveChangesAsync();
+            var success = await _sprintPlanningService.SetSprintGoalAsync(sprintId, sprintGoal);
+            if (!success) return NotFound();
+
             return RedirectToAction(nameof(Index), new { id = sprintId });
         }
 
         [HttpPost, ValidateAntiForgeryToken, Authorize(Roles = "Scrum Master")]
         public async Task<IActionResult> StartSprint(int id)
         {
-            var sprint = await _context.Sprints
-                .Include(s => s.Project)
-                .FirstOrDefaultAsync(s => s.Id == id);
-            if (sprint == null) return NotFound();
+            int? projectId = await _sprintService.GetProjectIdForSprintAsync(id);
+            if (projectId == null) return NotFound();
 
-            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(sprint.ProjectId));
+            var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
-            sprint.Active = true;
-            sprint.EndDate = DateTime.Now.AddDays(sprint.Project.SprintDuration * 7);
-            await _context.SaveChangesAsync();
+            var success = await _sprintPlanningService.StartSprint(id);
+            if (!success) return NotFound();
 
-            return RedirectToAction("Index", "Sprint", new { id = sprint.ProjectId });
+            return RedirectToAction("Index", "Sprint", new { id = (int)projectId });
         }
     }
 }

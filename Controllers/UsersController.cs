@@ -3,20 +3,25 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
+using ProjectManagementApplication.Dto.Read.UsersDtos;
+using ProjectManagementApplication.Dto.Requests.UsersRequests;
 using ProjectManagementApplication.Helpers;
 using ProjectManagementApplication.Models.UsersViewModels;
+using ProjectManagementApplication.Services.Interfaces;
 
 namespace ProjectManagementApplication.Controllers
 {
-	[Authorize(Roles = "Scrum Master")]
+    [Authorize(Roles = "Scrum Master")]
 	public class UsersController : Controller
 	{
 		private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
-        public UsersController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        private readonly IUsersService _usersService;
+        public UsersController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IUsersService usersService)
 		{
 			_userManager = userManager;
             _roleManager = roleManager;
+            _usersService = usersService;
 		}
 
         private const int pageSize = 10;
@@ -28,35 +33,7 @@ namespace ProjectManagementApplication.Controllers
 			int totalPages = (int)Math.Ceiling(totalUsers / (double)pageSize);
 			ViewBag.TotalPages = totalPages;
 
-			var users = await _userManager.Users
-				.Skip((page - 1) * pageSize)
-				.Take(pageSize)
-				.ToListAsync();
-
-            List<UsersViewModel> usersVm = new List<UsersViewModel>();
-            foreach (ApplicationUser user in users)
-            {
-                string role = "";
-                List<string> roles = (await _userManager.GetRolesAsync(user)).ToList();
-                if (!roles.Contains("Scrum Master") && !roles.Contains("Product Owner"))
-                {
-                    role = "Developer";
-                }
-                else
-				{
-					role = roles.FirstOrDefault() ?? "";
-				}
-
-                usersVm.Add(new UsersViewModel()
-                {
-                    Id = user.Id,
-                    Email = user.Email ?? "",
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Role = (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? ""
-				});
-            }
-            return View(usersVm);
+            return View(await _usersService.GetUsersAsync(page, pageSize));
         }
 
         public ActionResult Details(int id)
@@ -90,51 +67,30 @@ namespace ProjectManagementApplication.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateUserViewModel userVm, string role)
         {
-            var user = new ApplicationUser
+            var request = new CreateUserRequest()
             {
-                UserName = userVm.Email,
                 Email = userVm.Email,
                 FirstName = userVm.FirstName,
-                LastName = userVm.LastName
+                LastName = userVm.LastName,
+                Role = role
             };
 
-            string tempPassword = PasswordHelper.GeneratePassword(_userManager.Options.Password);
-
-            var result = await _userManager.CreateAsync(user, tempPassword);
-
-            if (result.Succeeded)
+            string? tempPassword = await _usersService.CreateUserWithTempPasswordAsync(request);
+            if(tempPassword != null)
             {
-                if (role == "Scrum Master" || role == "Product Owner")
-                {
-                    await _userManager.AddToRoleAsync(user, role);
-                }
-                user.MustChangePassword = true;
-                await _userManager.UpdateAsync(user);
-
-                TempData["UserEmail"] = user.Email;
+                TempData["UserEmail"] = userVm.Email;
                 TempData["TempPassword"] = tempPassword;
 
-                try
-                {
-                    return View("CreateConfirmation");
-                }
-                catch
-                {
-                    return View(userVm);
-                }
+                return View("CreateConfirmation");
             }
-
-            return View(userVm);
+            else
+            {
+                return View(userVm);
+            }
         }
 
         public async Task<IActionResult> Edit(string id)
         {
-            ApplicationUser? user = await _userManager.FindByIdAsync(id);
-			if (user == null)
-			{
-				return NotFound();
-			}
-
             List<string> rolesOptions = new List<string>()
             {
                 "Developer"
@@ -148,40 +104,38 @@ namespace ProjectManagementApplication.Controllers
             }
             rolesOptions.AddRange(roles);
 
-            CreateUserViewModel userVm = new CreateUserViewModel()
+            EditUserDto? dto = await _usersService.GetForEditAsync(id);
+            if (dto == null)
             {
-                Id = id,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Role = (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? "",
+                return NotFound();
+            }
+
+            EditUserViewModel model = new EditUserViewModel()
+            {
+                Id = dto.Id,
+                Email = dto.Email,
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Role = dto.Role,
                 RolesOptions = rolesOptions
             };
-            return View(userVm);
+            return View(model);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(string id, CreateUserViewModel model, string role)
         {
-            ApplicationUser? user = await _userManager.FindByIdAsync(id);
-			if (user == null)
-			{
-				return NotFound();
-			}
-			user.FirstName = model.FirstName;
-            user.LastName = model.LastName;
-            user.Email = model.Email;
-            user.UserName = model.Email;
-
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            await _userManager.RemoveFromRolesAsync(user, currentRoles);
-            if (role == "Scrum Master" || role == "Product Owner")
+            var request = new EditUserRequest()
             {
-                await _userManager.AddToRoleAsync(user, role);
-            }
-
-            await _userManager.UpdateAsync(user);
+                Id = id,
+                Email = model.Email,
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Role = role
+            };
+            if (!await _usersService.EditUserAsync(request))
+                return NotFound();
             try
             {
                 return RedirectToAction(nameof(Index));
