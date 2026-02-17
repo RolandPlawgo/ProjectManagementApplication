@@ -50,7 +50,7 @@
                                     data-bs-target="#@collapseId"
                                     aria-expanded="@(isFirst.ToString().ToLower())"
                                     aria-controls="@collapseId">
-                                Sprint @sprint.Id – @sprint.SprintGoal
+                                @sprint.StartDate.ToString()-@sprint.EndDate.ToString() @sprint.SprintGoal
                             </button>
                         </h2>
                         <div id="@collapseId"

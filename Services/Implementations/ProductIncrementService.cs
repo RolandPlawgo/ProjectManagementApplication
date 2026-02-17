@@ -21,7 +21,7 @@ namespace ProjectManagementApplication.Services.Implementations
             if (project == null) return null;
 
             List<SprintSummaryDto> sprintsDto = new List<SprintSummaryDto>();
-            List<Sprint> sprints = await _context.Sprints.Where(s => s.ProjectId == projectId && s.Active == false && s.EndDate < DateTime.Now)
+            List<Sprint> sprints = await _context.Sprints.Where(s => s.ProjectId == projectId && s.Active == false && s.EndDate < DateTime.Now && s.StartDate != null)
                 .Include(s => s.UserStories.Where(u => u.Status == Status.ProductIncrement))
                     .ThenInclude(u => u.Epic)
                 .OrderByDescending(s => s.Id)
@@ -42,6 +42,8 @@ namespace ProjectManagementApplication.Services.Implementations
                 {
                     Id = sprint.Id,
                     SprintGoal = sprint.SprintGoal,
+                    StartDate = DateOnly.FromDateTime((DateTime)sprint.StartDate!),
+                    EndDate = DateOnly.FromDateTime((DateTime)sprint.EndDate!),
                     UserStories = storiesDto
                 });
             }
