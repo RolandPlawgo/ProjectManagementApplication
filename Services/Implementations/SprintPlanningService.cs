@@ -102,6 +102,7 @@ namespace ProjectManagementApplication.Services.Implementations
             if (sprint == null) return false;
 
             sprint.Active = true;
+            sprint.StartDate = DateTime.Now;
             sprint.EndDate = DateTime.Now.AddDays(sprint.Project.SprintDuration * 7);
             await _context.SaveChangesAsync();
 
