@@ -62,14 +62,25 @@ function bindAjaxForm(form, modal) {
 
         const contentType = res.headers.get('Content-Type') || '';
         if (contentType.includes('application/json')) {
-            const { success } = await res.json();
+            const { success, error } = await res.json();
             if (success) {
                 modal.hide();
                 location.reload();
                 return;
+            } else {
+                if (!document.getElementById("error-message")) {
+                    const p = document.createElement("p");
+                    p.id = "error-message";
+                    p.innerHTML = error;
+                    p.classList.add("text-danger");
+                    p.style.textAlign = "center";
+                    form.querySelector('.modal-body').appendChild(p);
+                }
+                const newForm = modal._element.querySelector('form');
+                if (newForm) bindAjaxForm(newForm, modal);
+                return;
             }
         }
-
         const html = await res.text();
         form.closest('.modal-content').innerHTML = html;
         const newForm = modal._element.querySelector('form');
@@ -148,10 +159,10 @@ function bindCommentForm(form) {
     });
 }
 
-
-const commentForm = contentEl.querySelector('#addCommentForm');
-if (commentForm) bindCommentForm(commentForm);
-
+try {
+    const commentForm = contentEl.querySelector('#addCommentForm');
+    if (commentForm) bindCommentForm(commentForm);
+} catch { }
 
 document.addEventListener('submit', function (e) {
     const form = e.target;

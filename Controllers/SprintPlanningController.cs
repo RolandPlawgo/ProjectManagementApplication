@@ -64,13 +64,20 @@ namespace ProjectManagementApplication.Controllers
             else if (targetList == "Backlog") targetStatus = Status.Backlog;
             if (targetStatus == null) return Json(new { success = false });
 
-            bool success = await _sprintPlanningService.MoveUserStory(new MoveUserStoryRequest
+            try
             {
-                UserStoryId = id,
-                TargetStatus = (Status)targetStatus,
-                SprintId = sprintId
-            });
-            if (!success) return Json(new { success = false });
+                bool success = await _sprintPlanningService.MoveUserStory(new MoveUserStoryRequest
+                {
+                    UserStoryId = id,
+                    TargetStatus = (Status)targetStatus,
+                    SprintId = sprintId
+                });
+                if (!success) return Json(new { success = false });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false });
+            }
 
             return Json(new { success = true });
         }

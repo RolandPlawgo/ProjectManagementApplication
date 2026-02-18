@@ -91,9 +91,7 @@ namespace ProjectManagementApplication.Controllers
             }
             catch
             {
-                ModelState.AddModelError(key: "", errorMessage: "An error occurred while creating the project. Please try again.");
-                await PopulateSelections(model);
-                return PartialView("_Create", model);
+                return Json(new { success = false, error = "An error occurred while creating the project. Please try again." });
             }
 
             return Json(new { success = true });
@@ -177,9 +175,15 @@ namespace ProjectManagementApplication.Controllers
         {
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
             if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
-
-            var result = await _projectsService.DeleteProjectAsync(id);
-            if (result == false) return Json(new { success = false, error = "Project not found." });
+            try
+            {
+                var result = await _projectsService.DeleteProjectAsync(id);
+                if (result == false) return Json(new { success = false, error = "Project not found." });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false });
+            }
 
             return Json(new { success = true });
         }

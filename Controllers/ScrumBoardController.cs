@@ -73,8 +73,15 @@ namespace ProjectManagementApplication.Controllers
                 CurrentUserId = user.Id
             };
 
-            var success = await _scrumBoardService.MoveCardAsync(moveCardRequest);
-            if (!success) return Json(new { success = false });
+            try
+            {
+                var success = await _scrumBoardService.MoveCardAsync(moveCardRequest);
+                if (!success) return Json(new { success = false });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false });
+            }
 
             string initials = "";
             initials = Helpers.ApplicationUserHelper.UserInitials(user);

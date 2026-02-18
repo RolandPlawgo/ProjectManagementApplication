@@ -79,8 +79,14 @@ namespace ProjectManagementApplication.Controllers
                 TypeOfMeeting = model.TypeOfMeeting
             };
 
-            await _meetingsService.CreateMeetingAsync(createMeetingRequest);
-
+            try
+            {
+                await _meetingsService.CreateMeetingAsync(createMeetingRequest);
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false, error = "An error occurred while creating the meeting." });
+            }
             return Json(new { success = true });
         }
 
@@ -137,8 +143,14 @@ namespace ProjectManagementApplication.Controllers
                 Time = model.Time,
                 TypeOfMeeting = model.TypeOfMeeting
             };
-            await _meetingsService.EditMeetingAsync(request);
-
+            try
+            {
+                await _meetingsService.EditMeetingAsync(request);
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false, error = "An error occured while savinf the meeting." });
+            }
             return Json(new { success = true });
         }
 
