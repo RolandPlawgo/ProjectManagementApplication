@@ -48,10 +48,9 @@ namespace ProjectManagementApplication.Controllers
                     Title = model.Title
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ModelState.AddModelError("", "An error occurred while creating the epic.");
-                return PartialView("_CreateEpic", model);
+                return Json(new { success = false, error = "An error occured while creating the epic." });
             }
 
             return Json(new { success = true });
@@ -99,8 +98,7 @@ namespace ProjectManagementApplication.Controllers
             }
             catch
             {
-                ModelState.AddModelError("", "An error occurred while updating the epic.");
-                return PartialView("_EditEpic", model);
+                return Json(new { success = false, error = "An error occured while saving the epic." });
             }
 
             return Json(new { success = true });

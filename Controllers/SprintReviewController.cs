@@ -62,8 +62,15 @@ namespace ProjectManagementApplication.Controllers
                 UserStoryId = id,
                 TargetList = parsedTargetList
             };
-            bool success = await _sprintReviewService.MoveCardAsync(moveCardRequest);
-            if (!success) return Json(new { success = false });
+            try
+            {
+                bool success = await _sprintReviewService.MoveCardAsync(moveCardRequest);
+                if (!success) return Json(new { success = false });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false });
+            }
 
             return Json(new { success = true });
         }

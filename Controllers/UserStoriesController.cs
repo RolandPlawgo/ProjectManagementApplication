@@ -47,17 +47,23 @@ public class UserStoriesController : Controller
         var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
         if (!authResult.Succeeded) return Forbid();
 
-        bool success = await _userStoriesService.CreateUserStoryAsync(new CreateUserStoryRequest
+        try
         {
-            EpicId = model.EpicId,
-            Title = model.Title,
-            Description = model.Description
-        });
-        if (success == false)
-        {
-            return NotFound();
+            bool success = await _userStoriesService.CreateUserStoryAsync(new CreateUserStoryRequest
+            {
+                EpicId = model.EpicId,
+                Title = model.Title,
+                Description = model.Description
+            });
+            if (success == false)
+            {
+                return Json(new { success = false, error = "Error - epic not found." });
+            }
         }
-
+        catch (Exception)
+        {
+            return Json(new { success = false, error = "An error occured while creating the user story." });
+        }
         return Json(new { success = true });
     }
 
@@ -121,16 +127,22 @@ public class UserStoriesController : Controller
         var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
         if (!authResult.Succeeded) return Forbid();
 
-        var editUserStoryRequest = new EditUserStoryRequest
+        try
         {
-            Id = vm.Id,
-            EpicId = vm.EpicId,
-            Title = vm.Title,
-            Description = vm.Description
-        };
-        bool success = await _userStoriesService.EditUserStoriyAsync(editUserStoryRequest);
-        if (!success)
-            return NotFound();
+            var editUserStoryRequest = new EditUserStoryRequest
+            {
+                Id = vm.Id,
+                EpicId = vm.EpicId,
+                Title = vm.Title,
+                Description = vm.Description
+            };
+            bool success = await _userStoriesService.EditUserStoriyAsync(editUserStoryRequest);
+            if (!success) return Json(new { success = false, error = "Error - user story not found." });
+        }
+        catch (Exception)
+        {
+            return Json(new { success = false, error = "An error occured while saving the user story." });
+        }
 
         return Json(new { success = true });
     }

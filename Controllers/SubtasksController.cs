@@ -125,8 +125,15 @@ namespace ProjectManagementApplication.Controllers
                 Content = vm.Content,
                 UserStoryId = vm.UserStoryId
             };
-            bool success = await _subtasksService.EditSubtaskAsync(request);
-            if (!success) return NotFound();
+            try
+            {
+                bool success = await _subtasksService.EditSubtaskAsync(request);
+                if (!success) return Json(new { success = false, error = "Error - Subtask not found." });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false, error = "An error occured while saving the subtask." });
+            }
 
             return Json(new { success = true });
         }
@@ -143,8 +150,15 @@ namespace ProjectManagementApplication.Controllers
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Json(new { success = false, error = "You are not a member of this project." });
 
-            bool success = await  _subtasksService.DeleteSubtaskAsync(id);
-            if (!success) return NotFound();
+            try
+            {
+                bool success = await _subtasksService.DeleteSubtaskAsync(id);
+                if (!success) return Json(new { success = false, error = "Task not found." });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false });
+            }
 
             return Json(new { success = true });
         }
