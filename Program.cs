@@ -196,6 +196,7 @@ namespace ProjectManagementApplication
                 app.UseHsts();
             }
 
+            app.UseStatusCodePagesWithReExecute("/Home/StatusCode", "?code={0}");
 
             app.UseWebOptimizer();
 
