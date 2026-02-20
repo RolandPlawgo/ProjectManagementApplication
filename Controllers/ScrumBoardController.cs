@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using ProjectManagementApplication.Authentication;
+using ProjectManagementApplication.Common;
 using ProjectManagementApplication.Dto.Read.ScrumBoardDtos;
 using ProjectManagementApplication.Dto.Requests.ScrumBoardRequests;
 using ProjectManagementApplication.Services.Interfaces;
@@ -75,8 +76,8 @@ namespace ProjectManagementApplication.Controllers
 
             try
             {
-                var success = await _scrumBoardService.MoveCardAsync(moveCardRequest);
-                if (!success) return Json(new { success = false });
+                Result result = await _scrumBoardService.MoveCardAsync(moveCardRequest);
+                if (result.Status != ResultStatus.Success) return Json(new { success = false });
             }
             catch (Exception)
             {
@@ -99,8 +100,9 @@ namespace ProjectManagementApplication.Controllers
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
-            bool success = await _scrumBoardService.FinishSprintEarlyAsync(id);
-            if (!success) return NotFound();
+            Result result = await _scrumBoardService.FinishSprintEarlyAsync(id);
+            if (result.Status == ResultStatus.NotFound) return NotFound();
+            else if (result.Status != ResultStatus.Success) return BadRequest(result.ErrorMessage);
 
             return RedirectToAction("Index", "SprintReview", new { id });
         }

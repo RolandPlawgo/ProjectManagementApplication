@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
+using ProjectManagementApplication.Common;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Dto.Read.ProjectsDtos;
 using ProjectManagementApplication.Dto.Requests.ProjectsRequests;
@@ -68,15 +69,6 @@ namespace ProjectManagementApplication.Controllers
                 await PopulateSelections(model);
                 return PartialView("_Create", model);
             }
-            if (!await AllRolesExistInProject(model.UserIds))
-            {
-                ModelState.AddModelError(
-                    key: "",
-                    errorMessage: "You must assign at least one Scrum Master, one Product Owner and one Developer."
-                );
-                await PopulateSelections(model);
-                return PartialView("_Create", model);
-            }
 
             var createProjectRequest = new CreateProjectRequest
             {
@@ -87,7 +79,17 @@ namespace ProjectManagementApplication.Controllers
             };
             try
             {
-                await _projectsService.CreateProjectAsync(createProjectRequest);
+                Result result = await _projectsService.CreateProjectAsync(createProjectRequest);
+                if (result.Status == ResultStatus.ValidationFailed)
+                {
+                    ModelState.AddModelError(
+                        key: "",
+                        errorMessage: result.ErrorMessage ?? "Failed to create the project. Make sure all fields are filled out and users of all roles are assigned."
+                    );
+                    await PopulateSelections(model);
+                    return PartialView("_Create", model);
+                }
+                if (result.Status != ResultStatus.Success) return Json(new { success = false, error = result.ErrorMessage });
             }
             catch
             {
@@ -132,15 +134,6 @@ namespace ProjectManagementApplication.Controllers
                 await PopulateSelections(model);
                 return PartialView("_Edit", model);
             }
-            if (!await AllRolesExistInProject(model.UserIds))
-            {
-                ModelState.AddModelError(
-                    key: "",
-                    errorMessage: "You must assign at least one Scrum Master, one Product Owner and one Developer."
-                );
-                await PopulateSelections(model);
-                return PartialView("_Edit", model);
-            }
 
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement(id));
             if (!authResult.Succeeded) return Json(new { success = false, error = "You’re not allowed to edit that project." });
@@ -154,18 +147,26 @@ namespace ProjectManagementApplication.Controllers
                 UserIds = model.UserIds            };
             try
             {
-                bool result = await _projectsService.UpdateProjectAsync(editProjectRequest);
-                if (result == false)
+                Result result = await _projectsService.UpdateProjectAsync(editProjectRequest);
+                switch (result.Status)
                 {
-                    return Json(new { success = false, error = "Project not found." });
+                    case ResultStatus.NotFound:
+                        return Json(new { success = false, error = result.ErrorMessage });
+                    case ResultStatus.ValidationFailed:
+                        ModelState.AddModelError(key: "", errorMessage: result.ErrorMessage ?? "Failed to edit the project. Make sure all fields are filled out and users of all roles are assigned.");
+                        await PopulateSelections(model);
+                        return PartialView("_Edit", model);
+                    case ResultStatus.Success:
+                        return Json(new { success = true });
+                    default:
+                        return Json(new { success = false, error = result.ErrorMessage });
                 }
+
             }
             catch
             {
                 return Json(new { success = false, error = "An error occurred while updating the project. Please try again." });
             }
-
-            return Json(new { success = true });
         }
 
         [Authorize(Roles = "Scrum Master")]
@@ -237,22 +238,6 @@ namespace ProjectManagementApplication.Controllers
             }).ToList();
         }
 
-        private async Task<bool> AllRolesExistInProject(List<string> userIds)
-        {
-            bool hasDev = false, hasPo = false, hasSm = false;
-
-            foreach (var uid in userIds)
-            {
-                var user = await _userManager.FindByIdAsync(uid);
-                if (user == null) throw new InvalidOperationException("User not found");
-                var roles = await _userManager.GetRolesAsync(user);
-
-                if (roles.Contains("Product Owner")) hasPo = true;
-                else if (roles.Contains("Scrum Master")) hasSm = true;
-                else hasDev = true;
-            }
-
-            return hasDev && hasPo && hasSm;
-        }
+        
     }
 }

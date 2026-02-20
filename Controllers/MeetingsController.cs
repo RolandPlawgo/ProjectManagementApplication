@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
+using ProjectManagementApplication.Common;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
 using ProjectManagementApplication.Dto.Read.MeetingsDtos;
@@ -81,7 +82,13 @@ namespace ProjectManagementApplication.Controllers
 
             try
             {
-                await _meetingsService.CreateMeetingAsync(createMeetingRequest);
+                Result result = await _meetingsService.CreateMeetingAsync(createMeetingRequest);
+                if (result.Status == ResultStatus.ValidationFailed)
+                {
+                    ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "");
+                    return PartialView("_CreateMeeting", model);
+                }
+                else if (result.Status != ResultStatus.Success) return Json(new { success = false, error = result.ErrorMessage });
             }
             catch (Exception)
             {
@@ -145,7 +152,13 @@ namespace ProjectManagementApplication.Controllers
             };
             try
             {
-                await _meetingsService.EditMeetingAsync(request);
+                Result result = await _meetingsService.EditMeetingAsync(request);
+                if (result.Status == ResultStatus.ValidationFailed)
+                {
+                    ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "");
+                    return PartialView("_EditMeeting", model);
+                }
+                else if (result.Status != ResultStatus.Success) return Json(new { success = false, error = result.ErrorMessage });
             }
             catch (Exception)
             {

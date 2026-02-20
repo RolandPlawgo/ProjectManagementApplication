@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
+using ProjectManagementApplication.Common;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
 using ProjectManagementApplication.Dto.Read.ProjectsDtos;
@@ -69,8 +70,11 @@ namespace ProjectManagementApplication.Services.Implementations
             return dto;
         }
 
-        public async Task CreateProjectAsync(CreateProjectRequest createProjectRequest)
+        public async Task<Result> CreateProjectAsync(CreateProjectRequest createProjectRequest)
         {
+            if (!await AllRolesExistInProject(createProjectRequest.UserIds))
+                return Result.ValidationFailed("Project must have at least one Product Owner, one Scrum Master and one Developer.");
+
             var project = new Project
             {
                 Name = createProjectRequest.Name,
@@ -87,14 +91,18 @@ namespace ProjectManagementApplication.Services.Implementations
 
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
+            return Result.Ok();
         }
 
-        public async Task<bool> UpdateProjectAsync(EditProjectRequest editProjectRequest)
+        public async Task<Result> UpdateProjectAsync(EditProjectRequest editProjectRequest)
         {
+            if (!await AllRolesExistInProject(editProjectRequest.UserIds))
+                return Result.ValidationFailed("Project must have at least one Product Owner, one Scrum Master and one Developer.");
+
             var project = await _context.Projects
                 .Include(p => p.Users)
                 .FirstOrDefaultAsync(p => p.Id == editProjectRequest.Id);
-            if (project == null) return false;
+            if (project == null) return Result.NotFound("Project not found.");
 
             project.Name = editProjectRequest.Name;
             project.Description = editProjectRequest.Description;
@@ -110,7 +118,7 @@ namespace ProjectManagementApplication.Services.Implementations
 
             await _context.SaveChangesAsync();
 
-            return true;
+            return Result.Ok();
         }
 
         public async Task<bool> DeleteProjectAsync(int projectId)
@@ -122,6 +130,24 @@ namespace ProjectManagementApplication.Services.Implementations
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        private async Task<bool> AllRolesExistInProject(List<string> userIds)
+        {
+            bool hasDev = false, hasPo = false, hasSm = false;
+
+            foreach (var uid in userIds)
+            {
+                var user = await _userManager.FindByIdAsync(uid);
+                if (user == null) throw new InvalidOperationException("User not found");
+                var roles = await _userManager.GetRolesAsync(user);
+
+                if (roles.Contains("Product Owner")) hasPo = true;
+                else if (roles.Contains("Scrum Master")) hasSm = true;
+                else hasDev = true;
+            }
+
+            return hasDev && hasPo && hasSm;
         }
     }
 }
