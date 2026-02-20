@@ -5,6 +5,7 @@ using ProjectManagementApplication.Authentication;
 using ProjectManagementApplication.Data.Entities;
 using ProjectManagementApplication.Services.Interfaces;
 using ProjectManagementApplication.Dto.Requests.SprintPlanningRequests;
+using ProjectManagementApplication.Common;
 
 namespace ProjectManagementApplication.Controllers
 {
@@ -66,13 +67,13 @@ namespace ProjectManagementApplication.Controllers
 
             try
             {
-                bool success = await _sprintPlanningService.MoveUserStory(new MoveUserStoryRequest
+                Result result = await _sprintPlanningService.MoveUserStory(new MoveUserStoryRequest
                 {
                     UserStoryId = id,
                     TargetStatus = (Status)targetStatus,
                     SprintId = sprintId
                 });
-                if (!success) return Json(new { success = false });
+                if (result.Status != ResultStatus.Success) return Json(new { success = false });
             }
             catch (Exception)
             {
@@ -91,8 +92,9 @@ namespace ProjectManagementApplication.Controllers
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
-            var success = await _sprintPlanningService.SetSprintGoalAsync(sprintId, sprintGoal);
-            if (!success) return NotFound();
+            Result result = await _sprintPlanningService.SetSprintGoalAsync(sprintId, sprintGoal);
+            if (result.Status == ResultStatus.NotFound) return NotFound();
+            if (result.Status == ResultStatus.ValidationFailed) return BadRequest();
 
             return RedirectToAction(nameof(Index), new { id = sprintId });
         }
@@ -106,8 +108,9 @@ namespace ProjectManagementApplication.Controllers
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
-            var success = await _sprintPlanningService.StartSprint(id);
-            if (!success) return NotFound();
+            Result result = await _sprintPlanningService.StartSprint(id);
+            if (result.Status == ResultStatus.NotFound) return NotFound();
+            if (result.Status == ResultStatus.ValidationFailed) return BadRequest();
 
             return RedirectToAction("Index", "Sprint", new { id = (int)projectId });
         }

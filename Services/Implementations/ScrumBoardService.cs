@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using ProjectManagementApplication.Authentication;
+using ProjectManagementApplication.Common;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
 using ProjectManagementApplication.Dto.Read.ScrumBoardDtos;
@@ -15,10 +16,12 @@ namespace ProjectManagementApplication.Services.Implementations
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
-        public ScrumBoardService(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        private readonly ISprintService _sprintService;
+        public ScrumBoardService(ApplicationDbContext context, UserManager<ApplicationUser> userManager, ISprintService sprintService)
         {
             _context = context;
             _userManager = userManager;
+            _sprintService = sprintService;
         }
 
         public async Task<ScrumBoardDto?> GetScrumBoardAsync(int sprintId)
@@ -100,15 +103,27 @@ namespace ProjectManagementApplication.Services.Implementations
             return dto;
         }
 
-        public async Task<bool> MoveCardAsync(MoveCardRequest moveCardRequest)
+        public async Task<Result> MoveCardAsync(MoveCardRequest moveCardRequest)
         {
             Subtask? task = await _context.Subtasks
                 .Where(s => s.Id == moveCardRequest.SubtaskId)
                 .Include(t => t.UserStory)
                     .ThenInclude(u => u.Sprint)
                 .FirstOrDefaultAsync();
-            if (task == null) return false;
-            
+            if (task == null) return Result.NotFound();
+
+            int? sprintId = task.UserStory.SprintId;
+            if (sprintId == null) return Result.ValidationFailed("The user task must be assigned to a sprint.");
+
+            bool? isSprintActive = await _sprintService.IsSprintActiveAsync((int)sprintId);
+            if (isSprintActive == null) return Result.NotFound();
+            if (!(bool)isSprintActive)
+                return Result.ValidationFailed("Cannot move card because the sprint is not active.");
+
+            bool? isSprintFinished = await _sprintService.IsSprintFinishedAsync((int)sprintId);
+            if (isSprintFinished == null) return Result.NotFound();
+            if ((bool)isSprintFinished)
+                return Result.ValidationFailed("Cannot move card because the sprint is finished.");
 
             if (moveCardRequest.TargetList == TargetList.todo)
             {
@@ -129,20 +144,30 @@ namespace ProjectManagementApplication.Services.Implementations
             _context.Subtasks.Update(task);
             await _context.SaveChangesAsync();
 
-            return true;
+            return Result.Ok();
         }
 
-        public async Task<bool> FinishSprintEarlyAsync(int id)
+        public async Task<Result> FinishSprintEarlyAsync(int id)
         {
             Sprint? sprint = await _context.Sprints.FindAsync(id);
-            if (sprint == null) return false;
+            if (sprint == null) return Result.NotFound();
+
+            bool? isSprintActive = await _sprintService.IsSprintActiveAsync(sprint.Id);
+            if (isSprintActive == null) return Result.NotFound();
+            if (!(bool)isSprintActive)
+                return Result.ValidationFailed("Cannot finish sprint because the sprint is not active.");
+
+            bool? isSprintFinished = await _sprintService.IsSprintFinishedAsync(sprint.Id);
+            if (isSprintFinished == null) return Result.NotFound();
+            if ((bool)isSprintFinished)
+                return Result.ValidationFailed("Cannot finish sprint becuase the sprint has already been finished.");
 
             sprint.EndDate = DateTime.Now;
 
             _context.Sprints.Update(sprint);
             await _context.SaveChangesAsync();
 
-            return true;
+            return Result.Ok();
         }
     }
 

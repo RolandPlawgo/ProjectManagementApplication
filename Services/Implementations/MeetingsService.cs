@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjectManagementApplication.Authentication;
+using ProjectManagementApplication.Common;
 using ProjectManagementApplication.Data;
 using ProjectManagementApplication.Data.Entities;
 using ProjectManagementApplication.Dto.Read.MeetingsDtos;
@@ -59,8 +60,12 @@ namespace ProjectManagementApplication.Services.Implementations
             return dto;
         }
 
-        public async Task CreateMeetingAsync(CreateMeetingRequest request)
+        public async Task<Result> CreateMeetingAsync(CreateMeetingRequest request)
         {
+            if (request.Time < DateTime.Now)
+            {
+                return Result.ValidationFailed("Meeting time cannot be in the past.");
+            }
             _context.Meetings.Add(new Meeting()
             {
                 ProjectId = request.ProjectId,
@@ -70,6 +75,7 @@ namespace ProjectManagementApplication.Services.Implementations
                 TypeOfMeeting = request.TypeOfMeeting
             });
             await _context.SaveChangesAsync();
+            return Result.Ok();
         }
 
         public async Task<EditMeetingDto?> GetForEditAsync(int id)
@@ -90,8 +96,12 @@ namespace ProjectManagementApplication.Services.Implementations
             return dto;
         }
 
-        public async Task EditMeetingAsync(EditMeetingRequest request)
+        public async Task<Result> EditMeetingAsync(EditMeetingRequest request)
         {
+            if (request.Time < DateTime.Now)
+            {
+                return Result.ValidationFailed("Meeting time cannot be in the past.");
+            }
             _context.Meetings.Update(new Meeting()
             {
                 Id = request.Id,
@@ -102,6 +112,7 @@ namespace ProjectManagementApplication.Services.Implementations
                 TypeOfMeeting = request.TypeOfMeeting
             });
             await _context.SaveChangesAsync();
+            return Result.Ok();
         }
 
         public async Task<bool> DeleteMeetingAsync(int id)

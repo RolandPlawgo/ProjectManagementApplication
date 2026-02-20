@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using ProjectManagementApplication.Dto.Read.SprintReviewDtos;
 using ProjectManagementApplication.Services.Interfaces;
 using ProjectManagementApplication.Dto.Requests.SprintReviewRequests;
+using ProjectManagementApplication.Common;
 
 namespace ProjectManagementApplication.Controllers
 {
@@ -64,8 +65,8 @@ namespace ProjectManagementApplication.Controllers
             };
             try
             {
-                bool success = await _sprintReviewService.MoveCardAsync(moveCardRequest);
-                if (!success) return Json(new { success = false });
+                Result result = await _sprintReviewService.MoveCardAsync(moveCardRequest);
+                if (result.Status != ResultStatus.Success) return Json(new { success = false });
             }
             catch (Exception)
             {
@@ -86,8 +87,9 @@ namespace ProjectManagementApplication.Controllers
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
-            bool success = await _sprintReviewService.FinishSprintAsync(id);
-            if (!success) return NotFound();
+            Result result = await _sprintReviewService.FinishSprintAsync(id);
+            if (result.Status == ResultStatus.NotFound) return NotFound();
+            if (result.Status == ResultStatus.ValidationFailed) return BadRequest();
 
             return RedirectToAction("Index", "ProductIncrement", new {id = projectId});
         }
