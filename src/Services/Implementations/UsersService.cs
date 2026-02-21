@@ -127,5 +127,21 @@ namespace ProjectManagementApplication.Services.Implementations
 
             return true;
         }
+
+        public async Task<bool> DeleteUserAsync(string id)
+        {
+            ApplicationUser? user = _userManager.Users.Where(u => u.Id == id).FirstOrDefault();
+            if (user is null)
+            {
+                return false;
+            }
+            await _userManager.DeleteAsync(user);
+            return true;
+        }
+
+        public async Task<int> CountUsersAsync()
+        {
+            return await _userManager.Users.CountAsync();
+        }
     }
 }

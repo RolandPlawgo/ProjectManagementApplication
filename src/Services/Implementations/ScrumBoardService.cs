@@ -15,12 +15,12 @@ namespace ProjectManagementApplication.Services.Implementations
     public class ScrumBoardService : IScrumBoardService
     {
         private readonly IApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IIdentityUserService _identityUserService;
         private readonly ISprintService _sprintService;
-        public ScrumBoardService(IApplicationDbContext context, UserManager<ApplicationUser> userManager, ISprintService sprintService)
+        public ScrumBoardService(IApplicationDbContext context, IIdentityUserService identityUserService, ISprintService sprintService)
         {
             _context = context;
-            _userManager = userManager;
+            _identityUserService = identityUserService;
             _sprintService = sprintService;
         }
 

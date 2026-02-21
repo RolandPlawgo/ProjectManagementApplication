@@ -141,7 +141,7 @@ namespace ProjectManagementApplication.Services.Implementations
             bool? isSprintActive = await _sprintService.IsSprintActiveAsync(sprint.Id);
             if (isSprintActive == null) return Result.NotFound();
             if (!(bool)isSprintActive)
-                return Result.ValidationFailed("Cannot finish sprint because the sprint is active.");
+                return Result.ValidationFailed("Cannot finish sprint because the sprint is not active.");
 
             bool? isSprintFinished = await _sprintService.IsSprintFinishedAsync(sprint.Id);
             if (isSprintFinished == null) return Result.NotFound();

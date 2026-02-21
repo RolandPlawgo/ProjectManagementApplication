@@ -16,18 +16,16 @@ namespace ProjectManagementApplication.Controllers
 {
     public class MeetingsController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IIdentityUserService _identityUserService;
         private readonly IMeetingsService _meetingsService;
-        public MeetingsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IMeetingsService meetingsService)
+        public MeetingsController(IIdentityUserService identityUserService, IMeetingsService meetingsService)
         {
-            _context = context;
-            _userManager = userManager;
+            _identityUserService = identityUserService;
             _meetingsService = meetingsService;
         }
         public async Task<IActionResult> Index()
         {
-            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            ApplicationUser? user = await _identityUserService.GetUserAsync(User);
             if (user == null) return NotFound();
             
             MeetingsDto dto = await _meetingsService.GetMeetingsAsync(user);

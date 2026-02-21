@@ -14,11 +14,11 @@ namespace ProjectManagementApplication.Services.Implementations
     public class ProjectsService : IProjectsService
     {
         private readonly IApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
-        public ProjectsService(IApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        private readonly IIdentityUserService _identityUserService;
+        public ProjectsService(IApplicationDbContext context, IIdentityUserService identityUserService)
         {
             _context = context;
-            _userManager = userManager;
+            _identityUserService = identityUserService;
         }
 
         public async Task<List<ProjectCardDto>> GetProjectsForUserAsync(string userId)
@@ -58,7 +58,7 @@ namespace ProjectManagementApplication.Services.Implementations
 
             foreach (var user in project.Users)
             {
-                var role = (await _userManager.GetRolesAsync(user)).DefaultIfEmpty("Developer").FirstOrDefault();
+                var role = (await _identityUserService.GetRolesAsync(user)).DefaultIfEmpty("Developer").FirstOrDefault();
                 dto.UsersWithRoles.Add(new UserWithRolesDto
                 {
                     Id = user.Id,
@@ -84,7 +84,7 @@ namespace ProjectManagementApplication.Services.Implementations
 
             foreach (var userId in createProjectRequest.UserIds)
             {
-                var user = await _userManager.FindByIdAsync(userId);
+                var user = await _identityUserService.FindByIdAsync(userId);
                 if (user != null)
                     project.Users.Add(user);
             }
@@ -111,7 +111,7 @@ namespace ProjectManagementApplication.Services.Implementations
             project.Users.Clear();
             foreach (var userId in editProjectRequest.UserIds)
             {
-                var user = await _userManager.FindByIdAsync(userId);
+                var user = await _identityUserService.FindByIdAsync(userId);
                 if (user != null)
                     project.Users.Add(user);
             }
@@ -138,9 +138,9 @@ namespace ProjectManagementApplication.Services.Implementations
 
             foreach (var uid in userIds)
             {
-                var user = await _userManager.FindByIdAsync(uid);
+                var user = await _identityUserService.FindByIdAsync(uid);
                 if (user == null) throw new InvalidOperationException("User not found");
-                var roles = await _userManager.GetRolesAsync(user);
+                var roles = await _identityUserService.GetRolesAsync(user);
 
                 if (roles.Contains("Product Owner")) hasPo = true;
                 else if (roles.Contains("Scrum Master")) hasSm = true;

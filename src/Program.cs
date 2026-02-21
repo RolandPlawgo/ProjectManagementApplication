@@ -52,6 +52,7 @@ namespace ProjectManagementApplication
             });
 
             builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+            builder.Services.AddScoped<IIdentityUserService, IdentityUserService>();
 
             builder.Services.AddScoped<IAuthorizationHandler, ProjectMemberHandler>();
 

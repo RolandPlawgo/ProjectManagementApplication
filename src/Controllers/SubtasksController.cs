@@ -12,18 +12,18 @@ namespace ProjectManagementApplication.Controllers
 {
     public class SubtasksController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IIdentityUserService _identityUserService;
         private readonly IAuthorizationService _authorizationService;
         private readonly ISprintService _sprintService;
         private readonly ISubtasksService _subtasksService;
 
         public SubtasksController(
-            UserManager<ApplicationUser> userManager,
+            IIdentityUserService identityUserService,
             IAuthorizationService authorizationService,
             ISprintService sprintService,
             ISubtasksService subtasksService)
         {
-            _userManager = userManager;
+            _identityUserService = identityUserService;
             _authorizationService = authorizationService;
             _sprintService = sprintService;
             _subtasksService = subtasksService;
@@ -193,7 +193,7 @@ namespace ProjectManagementApplication.Controllers
             var authResult = await _authorizationService.AuthorizeAsync(User, resource: null, requirement: new ProjectMemberRequirement((int)projectId));
             if (!authResult.Succeeded) return Forbid();
 
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _identityUserService.GetUserAsync(User);
             if (user == null) return Forbid();
 
             var comment = new AddCommentRequest

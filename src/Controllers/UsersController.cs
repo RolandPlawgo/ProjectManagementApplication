@@ -14,12 +14,10 @@ namespace ProjectManagementApplication.Controllers
     [Authorize(Roles = "Scrum Master")]
 	public class UsersController : Controller
 	{
-		private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IUsersService _usersService;
-        public UsersController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IUsersService usersService)
+        public UsersController(RoleManager<IdentityRole> roleManager, IUsersService usersService)
 		{
-			_userManager = userManager;
             _roleManager = roleManager;
             _usersService = usersService;
 		}
@@ -28,7 +26,7 @@ namespace ProjectManagementApplication.Controllers
 
 		public async Task<ActionResult> Index( int page = 1)
 		{
-			int totalUsers = _userManager.Users.Count();
+			int totalUsers = await _usersService.CountUsersAsync();
 			ViewBag.CurrentPage = page;
 			int totalPages = (int)Math.Ceiling(totalUsers / (double)pageSize);
 			ViewBag.TotalPages = totalPages;
@@ -152,13 +150,8 @@ namespace ProjectManagementApplication.Controllers
         {
             try
             {
-                ApplicationUser? user = _userManager.Users.Where(u => u.Id == id).FirstOrDefault();
-                if (user is null)
-                {
-                    return NotFound();
-                }
-                await _userManager.DeleteAsync(user);
-
+                bool success = await _usersService.DeleteUserAsync(id);
+                if (!success) return NotFound();
                 return Json(new { success = true });
             }
 			catch

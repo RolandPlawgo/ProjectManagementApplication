@@ -9,5 +9,7 @@ namespace ProjectManagementApplication.Services.Interfaces
         public Task<string?> CreateUserWithTempPasswordAsync(CreateUserRequest request);
         public Task<EditUserDto?> GetForEditAsync(string id);
         public Task<bool> EditUserAsync(EditUserRequest request);
+        public Task<bool> DeleteUserAsync(string id);
+        public Task<int> CountUsersAsync();
     }
 }

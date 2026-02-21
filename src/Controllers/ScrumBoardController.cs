@@ -12,17 +12,17 @@ namespace ProjectManagementApplication.Controllers
 {
     public class ScrumBoardController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IIdentityUserService _identityUserService;
         private readonly IAuthorizationService _authorizationService;
         private readonly IScrumBoardService _scrumBoardService;
         private readonly ISprintService _sprintService;
 
-        public ScrumBoardController(UserManager<ApplicationUser> userManager, 
+        public ScrumBoardController(IIdentityUserService identityUserService, 
             IAuthorizationService authorizationService,
             IScrumBoardService scrumBoardService,
             ISprintService sprintService)
         {
-            _userManager = userManager;
+            _identityUserService = identityUserService;
             _authorizationService = authorizationService;
             _scrumBoardService = scrumBoardService;
             _sprintService = sprintService;
@@ -64,7 +64,7 @@ namespace ProjectManagementApplication.Controllers
 
             if (!Enum.TryParse<TargetList>(targetList, out TargetList parsedTargetList))
                 return Json(new { success = false });
-            var user = await _userManager.GetUserAsync(User);
+            var user = await _identityUserService.GetUserAsync(User);
             if (user == null) return Json( new { success = false });
 
             var moveCardRequest = new MoveCardRequest()

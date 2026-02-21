@@ -15,13 +15,13 @@ namespace ProjectManagementApplication.Controllers
 {
     public class ProjectsController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IIdentityUserService _identityUserService;
         private readonly IAuthorizationService _authorizationService;
         private readonly IProjectsService _projectsService;
 
-        public ProjectsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService, IProjectsService projectsService)
+        public ProjectsController(IIdentityUserService identityUsersService, IAuthorizationService authorizationService, IProjectsService projectsService)
         {
-            _userManager = userManager;
+            _identityUserService = identityUsersService;
             _authorizationService = authorizationService;
             _projectsService = projectsService;
         }
@@ -29,7 +29,7 @@ namespace ProjectManagementApplication.Controllers
         // GET: Projects
         public async Task<IActionResult> Index()
         {
-            string? userId = _userManager.GetUserId(User);
+            string? userId = _identityUserService.GetUserId(User);
             if (userId == null) return Forbid();
 
             var cards = await _projectsService.GetProjectsForUserAsync(userId);
@@ -198,10 +198,10 @@ namespace ProjectManagementApplication.Controllers
                 new SelectListItem("4 weeks", "4")
             };
 
-            var users = await _userManager.Users.ToListAsync();
+            var users = await _identityUserService.GetAllUsersAsync();
             vm.AllUsers = users.Select(u =>
             {
-                var roles = _userManager.GetRolesAsync(u).Result;
+                var roles = _identityUserService.GetRolesAsync(u).Result;
                 var label = string.IsNullOrEmpty(u.UserName) ? "" : u.UserName;
                 if (roles.Any())
                     label += $" ({string.Join(", ", roles)})";
@@ -222,10 +222,10 @@ namespace ProjectManagementApplication.Controllers
                 new SelectListItem("4 weeks", "4")
             };
 
-            var users = await _userManager.Users.ToListAsync();
+            var users = await _identityUserService.GetAllUsersAsync();
             vm.AllUsers = users.Select(u =>
             {
-                var roles = _userManager.GetRolesAsync(u).Result;
+                var roles = _identityUserService.GetRolesAsync(u).Result;
                 var label = string.IsNullOrEmpty(u.UserName) ? "" : u.UserName;
                 if (roles.Any())
                     label += $" ({string.Join(", ", roles)})";

@@ -8,13 +8,11 @@ namespace ProjectManagementApplication.Controllers
 {
     public class SprintController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IAuthorizationService _authorizationService;
         private readonly ISprintService _sprintService;
 
-        public SprintController(UserManager<ApplicationUser> userManager, IAuthorizationService authorizationService, ISprintService sprintService)
+        public SprintController(IAuthorizationService authorizationService, ISprintService sprintService)
         {
-            _userManager = userManager;
             _authorizationService = authorizationService;
             _sprintService = sprintService;
         }
