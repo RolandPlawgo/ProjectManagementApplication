@@ -11,9 +11,9 @@ namespace ProjectManagementApplication.Services.Implementations
 {
     public class SprintPlanningService : ISprintPlanningService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
         private readonly ISprintService _sprintService;
-        public SprintPlanningService(ApplicationDbContext context, ISprintService sprintService)
+        public SprintPlanningService(IApplicationDbContext context, ISprintService sprintService)
         {
             _context = context;
             _sprintService = sprintService;
@@ -96,7 +96,7 @@ namespace ProjectManagementApplication.Services.Implementations
                 userStory.SprintId = null;
             }
 
-            _context.Update(userStory);
+            _context.UserStories.Update(userStory);
             await _context.SaveChangesAsync();
 
             return Result.Ok();

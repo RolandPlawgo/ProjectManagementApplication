@@ -10,10 +10,10 @@ namespace ProjectManagementApplication.Services.Implementations
 {
     public class SprintReviewService : ISprintReviewService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
         private readonly ISprintService _sprintService;
 
-        public SprintReviewService(ApplicationDbContext context, ISprintService sprintService)
+        public SprintReviewService(IApplicationDbContext context, ISprintService sprintService)
         {
             _context = context;
             _sprintService = sprintService;

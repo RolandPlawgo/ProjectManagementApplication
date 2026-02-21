@@ -8,8 +8,8 @@ namespace ProjectManagementApplication.Services.Implementations
 {
     public class ProductIncrementService : IProductIncrementService
     {
-        private readonly ApplicationDbContext _context;
-        public ProductIncrementService(ApplicationDbContext context) 
+        private readonly IApplicationDbContext _context;
+        public ProductIncrementService(IApplicationDbContext context) 
         {
             _context = context;
         }

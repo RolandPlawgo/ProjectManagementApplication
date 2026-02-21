@@ -12,8 +12,8 @@ namespace ProjectManagementApplication.Services.Implementations
 {
     public class UserStoriesService : IUserStoriesService
     {
-        private readonly ApplicationDbContext _context;
-        public UserStoriesService(ApplicationDbContext context)
+        private readonly IApplicationDbContext _context;
+        public UserStoriesService(IApplicationDbContext context)
         {
             _context = context;
         }
@@ -90,7 +90,7 @@ namespace ProjectManagementApplication.Services.Implementations
             userStory.EpicId = editUserStoryRequest.EpicId;
             userStory.Title = editUserStoryRequest.Title;
             userStory.Description = editUserStoryRequest.Description;
-            _context.Update(userStory);
+            _context.UserStories.Update(userStory);
             await _context.SaveChangesAsync();
 
             return true;

@@ -13,8 +13,8 @@ namespace ProjectManagementApplication.Services.Implementations
 {
     public class MeetingsService : IMeetingsService
     {
-        private readonly ApplicationDbContext _context;
-        public MeetingsService(ApplicationDbContext context) 
+        private readonly IApplicationDbContext _context;
+        public MeetingsService(IApplicationDbContext context) 
         {
             _context = context;
         }
@@ -123,7 +123,7 @@ namespace ProjectManagementApplication.Services.Implementations
                 return false;
             }
             _context.Meetings.Remove(meeting);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
             return true;
         }
     }

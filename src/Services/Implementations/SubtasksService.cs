@@ -12,8 +12,8 @@ namespace ProjectManagementApplication.Services.Implementations
 {
     public class SubtasksService : ISubtasksService
     {
-        private readonly ApplicationDbContext _context;
-        public SubtasksService(ApplicationDbContext context) 
+        private readonly IApplicationDbContext _context;
+        public SubtasksService(IApplicationDbContext context) 
         {
             _context = context;
         }

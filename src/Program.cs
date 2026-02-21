@@ -51,6 +51,7 @@ namespace ProjectManagementApplication
                 options.Conventions.AllowAnonymousToAreaFolder("Identity", "/Account");
             });
 
+            builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
             builder.Services.AddScoped<IAuthorizationHandler, ProjectMemberHandler>();
 

@@ -5,7 +5,7 @@ using ProjectManagementApplication.Data.Entities;
 
 namespace ProjectManagementApplication.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplicationDbContext
     {
         public DbSet<Project> Projects { get; set; }
         public DbSet<Epic> Epics { get; set; }

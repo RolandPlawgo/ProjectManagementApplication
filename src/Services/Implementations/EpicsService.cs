@@ -10,8 +10,8 @@ namespace ProjectManagementApplication.Services.Implementations
 {
     public class EpicsService : IEpicsService
     {
-        private readonly ApplicationDbContext _context;
-        public EpicsService(ApplicationDbContext context)
+        private readonly IApplicationDbContext _context;
+        public EpicsService(IApplicationDbContext context)
         {
             _context = context;
         }

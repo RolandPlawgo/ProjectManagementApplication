@@ -13,9 +13,9 @@ namespace ProjectManagementApplication.Services.Implementations
 {
     public class ProjectsService : IProjectsService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
-        public ProjectsService(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public ProjectsService(IApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;

@@ -8,8 +8,8 @@ namespace ProjectManagementApplication.Services.Implementations
 {
     public class BacklogService : IBacklogService
     {
-        private readonly ApplicationDbContext _context;
-        public BacklogService(ApplicationDbContext context)
+        private readonly IApplicationDbContext _context;
+        public BacklogService(IApplicationDbContext context)
         {
             _context = context;
         }
