@@ -1,10 +1,10 @@
 # Scrum Project Management Web Application
-A thesis project built with ASP.NET Core to support teams in applying Scrum principles.
+A web application allowing teams to manage tasks in projects applying the most important Scrum principles.
 
 
 # Overview
 ## Purpose
-This web application was developed as my bachelor’s thesis in Computer Science.
+This web application was developed as my bachelor’s thesis in Computer Science and expanded later.
 ## Description
 The application enables Scrum teams to manage backlog, plan sprints, organize tasks on a Scrum board, and schedule meetings. It supports all key Scrum roles, artifacts, and events.
 
@@ -15,6 +15,7 @@ The application enables Scrum teams to manage backlog, plan sprints, organize ta
 - JavaScript
 - HTML, CSS, SCSS
 - Bootstrap
+- xUnit
 
 
 # Features
