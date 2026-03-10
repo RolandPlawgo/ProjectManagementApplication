@@ -93,95 +93,101 @@ namespace ProjectManagementApplication
 
                 context.Database.Migrate();
 
-                const string demoName = "Sample Project";
-                var sampleProject = await context.Projects
-                    .Include(p => p.Users)
-                    .Include(p => p.Epics)
-                    .FirstOrDefaultAsync(p => p.Name == demoName);
-
-                if (sampleProject == null)
-                {
-                    sampleProject = new Project
-                    {
-                        Name = demoName,
-                        Description = "Sample project added by default",
-                        SprintDuration = 2
-                    };
-                    context.Projects.Add(sampleProject);
-                    await context.SaveChangesAsync();
-
-                    var epicAuth = new Epic { ProjectId = sampleProject.Id, Title = "Authentication" };
-                    var epicAuthz = new Epic { ProjectId = sampleProject.Id, Title = "Authorization" };
-                    context.Epics.AddRange(epicAuth, epicAuthz);
-                    await context.SaveChangesAsync();
-
-                    context.UserStories.AddRange(
-                        new UserStory
-                        {
-                            EpicId = epicAuth.Id,
-                            Title = "As an anonymous user I want to register an account so that I can log in",
-                            Description = "Provide a registration form and persist new users.",
-                            Status = Status.Backlog
-                        },
-                        new UserStory
-                        {
-                            EpicId = epicAuth.Id,
-                            Title = "As a registered user I want to reset my password so that I can recover access",
-                            Description = "Implement password‐reset via email token.",
-                            Status = Status.Backlog
-                        },
-                        new UserStory
-                        {
-                            EpicId = epicAuthz.Id,
-                            Title = "As a manager I want to assign roles to users so that I control access levels",
-                            Description = "Provide UI for role management.",
-                            Status = Status.Backlog
-                        },
-                        new UserStory
-                        {
-                            EpicId = epicAuthz.Id,
-                            Title = "As an administrator I want to view access logs so that I can audit security events",
-                            Description = "Expose log viewer in admin panel.",
-                            Status = Status.Backlog
-                        }
-                    );
-                    await context.SaveChangesAsync();
-                }
-
                 if (!await roleManager.RoleExistsAsync("Scrum Master"))
                     await roleManager.CreateAsync(new IdentityRole("Scrum Master"));
                 if (!await roleManager.RoleExistsAsync("Product Owner"))
                     await roleManager.CreateAsync(new IdentityRole("Product Owner"));
 
-                async Task<ApplicationUser> CreateIfNotExists(string firstName, string email, string password, string? role = null)
+
+                var seedDemo = builder.Configuration.GetValue<bool>("SeedDemoData", true);
+                if (seedDemo)
                 {
-                    var user = await userManager.FindByEmailAsync(email);
-                    if (user == null)
+                    const string demoName = "Sample Project";
+                    var sampleProject = await context.Projects
+                        .Include(p => p.Users)
+                        .Include(p => p.Epics)
+                        .FirstOrDefaultAsync(p => p.Name == demoName);
+
+                    if (sampleProject == null)
                     {
-                        user = new ApplicationUser
+                        sampleProject = new Project
                         {
-                            UserName = email,
-                            Email = email,
-                            FirstName = firstName,
-                            LastName = "Demo"
+                            Name = demoName,
+                            Description = "Sample project added by default",
+                            SprintDuration = 2
                         };
-                        await userManager.CreateAsync(user, password);
-                        if (role != null)
-                            await userManager.AddToRoleAsync(user, role);
+                        context.Projects.Add(sampleProject);
+                        await context.SaveChangesAsync();
+
+                        var epicAuth = new Epic { ProjectId = sampleProject.Id, Title = "Authentication" };
+                        var epicAuthz = new Epic { ProjectId = sampleProject.Id, Title = "Authorization" };
+                        context.Epics.AddRange(epicAuth, epicAuthz);
+                        await context.SaveChangesAsync();
+
+                        context.UserStories.AddRange(
+                            new UserStory
+                            {
+                                EpicId = epicAuth.Id,
+                                Title = "As an anonymous user I want to register an account so that I can log in",
+                                Description = "Provide a registration form and persist new users.",
+                                Status = Status.Backlog
+                            },
+                            new UserStory
+                            {
+                                EpicId = epicAuth.Id,
+                                Title = "As a registered user I want to reset my password so that I can recover access",
+                                Description = "Implement password‐reset via email token.",
+                                Status = Status.Backlog
+                            },
+                            new UserStory
+                            {
+                                EpicId = epicAuthz.Id,
+                                Title = "As a manager I want to assign roles to users so that I control access levels",
+                                Description = "Provide UI for role management.",
+                                Status = Status.Backlog
+                            },
+                            new UserStory
+                            {
+                                EpicId = epicAuthz.Id,
+                                Title = "As an administrator I want to view access logs so that I can audit security events",
+                                Description = "Expose log viewer in admin panel.",
+                                Status = Status.Backlog
+                            }
+                        );
+                        await context.SaveChangesAsync();
                     }
-                    return user;
-                }
 
-                var dev = await CreateIfNotExists("Developer", "developer@mail.com", "Qwerty1!");
-                var scrumMaster = await CreateIfNotExists("Scrummaster", "scrummaster@mail.com", "Qwerty1!", "Scrum Master");
-                var productOwner = await CreateIfNotExists("Productowner", "productowner@mail.com", "Qwerty1!", "Product Owner");
 
-                foreach (var u in new[] { dev, scrumMaster, productOwner })
-                {
-                    if (!sampleProject.Users.Any(x => x.Id == u.Id))
-                        sampleProject.Users.Add(u);
+                    async Task<ApplicationUser> CreateIfNotExists(string firstName, string email, string password, string? role = null)
+                    {
+                        var user = await userManager.FindByEmailAsync(email);
+                        if (user == null)
+                        {
+                            user = new ApplicationUser
+                            {
+                                UserName = email,
+                                Email = email,
+                                FirstName = firstName,
+                                LastName = "Demo"
+                            };
+                            await userManager.CreateAsync(user, password);
+                            if (role != null)
+                                await userManager.AddToRoleAsync(user, role);
+                        }
+                        return user;
+                    }
+
+                    var dev = await CreateIfNotExists("Developer", "developer@mail.com", "Qwerty1!");
+                    var scrumMaster = await CreateIfNotExists("Scrummaster", "scrummaster@mail.com", "Qwerty1!", "Scrum Master");
+                    var productOwner = await CreateIfNotExists("Productowner", "productowner@mail.com", "Qwerty1!", "Product Owner");
+
+                    foreach (var u in new[] { dev, scrumMaster, productOwner })
+                    {
+                        if (!sampleProject.Users.Any(x => x.Id == u.Id))
+                            sampleProject.Users.Add(u);
+                    }
+                    await context.SaveChangesAsync();
                 }
-                await context.SaveChangesAsync();
             }
 
 
