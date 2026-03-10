@@ -45,7 +45,7 @@ namespace ProjectManagementApplication.Controllers
             {
                 404 => View("NotFound", new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier }),
                 403 => View("Forbidden", new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier }),
-                _ => View("Error")
+                _ => View("Error", new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier })
             };
         }
     }
