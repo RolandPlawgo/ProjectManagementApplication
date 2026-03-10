@@ -5,10 +5,12 @@ VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProjectManagementApplication", "src\ProjectManagementApplication.csproj", "{ED42B7FA-32C4-4E72-88E4-BE2AEAB56597}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProjectManagementApplication_UnitTests", "tests\ProjectManagementApplication_UnitTests\ProjectManagementApplication_UnitTests.csproj", "{ADE7FD44-7C84-4300-A83B-B75540BF6931}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProjectManagementApplication_UnitTests", "tests\ProjectManagementApplication_UnitTests\ProjectManagementApplication_UnitTests.csproj", "{ADE7FD44-7C84-4300-A83B-B75540BF6931}"
 	ProjectSection(ProjectDependencies) = postProject
 		{ED42B7FA-32C4-4E72-88E4-BE2AEAB56597} = {ED42B7FA-32C4-4E72-88E4-BE2AEAB56597}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProjectManagementApplication_IntegrationTests", "tests\ProjectManagementApplication_IntegrationTests\ProjectManagementApplication_IntegrationTests.csproj", "{8D7817AB-1783-4017-A675-7F09A887ABBC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +46,18 @@ Global
 		{ADE7FD44-7C84-4300-A83B-B75540BF6931}.Release|x64.Build.0 = Release|Any CPU
 		{ADE7FD44-7C84-4300-A83B-B75540BF6931}.Release|x86.ActiveCfg = Release|Any CPU
 		{ADE7FD44-7C84-4300-A83B-B75540BF6931}.Release|x86.Build.0 = Release|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Debug|x64.Build.0 = Debug|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Debug|x86.Build.0 = Debug|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Release|x64.ActiveCfg = Release|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Release|x64.Build.0 = Release|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Release|x86.ActiveCfg = Release|Any CPU
+		{8D7817AB-1783-4017-A675-7F09A887ABBC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
